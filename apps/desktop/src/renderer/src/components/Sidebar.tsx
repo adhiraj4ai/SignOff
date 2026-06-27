@@ -1,31 +1,20 @@
 import React, { useState } from 'react'
 import type { FeatureEntry, ApprovalStatus } from '@shared/ipc-types'
 import { Logo } from './Logo'
+import { humanizeFeature } from '../lib/feature'
 
 type DocType = 'spec' | 'plan'
 type Status = ApprovalStatus | 'not_found'
 type GroupBy = 'feature' | 'status'
+type StatusFilter = ApprovalStatus | 'all'
 
 interface Props {
   vaultName: string
   features: FeatureEntry[]
-  selected: { feature: string; type: DocType } | null
-  onSelect: (feature: string, type: DocType) => void
+  selected: { feature: string } | null
+  onSelect: (feature: string) => void
   onSync: () => void
   onSwitchVault?: () => void
-}
-
-interface DocEntry {
-  feature: string
-  type: DocType
-  status: ApprovalStatus
-}
-
-function statusIcon(status: Status): string {
-  if (status === 'pending') return '⏳'
-  if (status === 'approved') return '✅'
-  if (status === 'rejected') return '❌'
-  return '○'
 }
 
 function statusLabel(status: Status): string {
@@ -35,6 +24,14 @@ function statusLabel(status: Status): string {
   return 'Open'
 }
 
+function statusIcon(status: Status): string {
+  if (status === 'pending') return '⏳'
+  if (status === 'approved') return '✅'
+  if (status === 'rejected') return '❌'
+  return '○'
+}
+
+/** Solid dot color for a status (used in filter chips + group headers). */
 function statusDot(status: Status): string {
   if (status === 'pending') return 'bg-wait'
   if (status === 'approved') return 'bg-ok'
@@ -42,9 +39,15 @@ function statusDot(status: Status): string {
   return 'bg-railfg/30'
 }
 
-const STATUS_ORDER: ApprovalStatus[] = ['pending', 'rejected', 'approved', 'not_found']
+/** Tinted badge classes for a per-document status pill on a feature row. */
+function statusTint(status: Status): string {
+  if (status === 'pending') return 'bg-wait/20 text-wait'
+  if (status === 'approved') return 'bg-ok/20 text-ok'
+  if (status === 'rejected') return 'bg-stop/20 text-stop'
+  return 'bg-railfg/10 text-railfg/40'
+}
 
-type StatusFilter = ApprovalStatus | 'all'
+const STATUS_ORDER: ApprovalStatus[] = ['pending', 'rejected', 'approved', 'not_found']
 
 const FILTERS: { key: StatusFilter; label: string }[] = [
   { key: 'all', label: 'All' },
@@ -53,23 +56,27 @@ const FILTERS: { key: StatusFilter; label: string }[] = [
   { key: 'approved', label: 'Approved' },
 ]
 
-function TypeIcon({ type }: { type: DocType }): React.ReactElement {
-  if (type === 'spec') {
-    // document with text lines
-    return (
-      <svg viewBox="0 0 16 16" className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.25">
-        <path d="M4 2.5h4.5L12 6v7a1 1 0 01-1 1H4a1 1 0 01-1-1V3.5a1 1 0 011-1z" strokeLinejoin="round" />
-        <path d="M8.5 2.5V6H12" strokeLinejoin="round" />
-        <path d="M5.5 9h5M5.5 11h3.5" strokeLinecap="round" />
-      </svg>
-    )
-  }
-  // plan: checklist
+const DOC_TYPES: DocType[] = ['spec', 'plan']
+
+/** The statuses of a feature's existing documents (drops not_found). */
+function featureStatuses(f: FeatureEntry): ApprovalStatus[] {
+  return DOC_TYPES.map((t) => f[t]).filter((s): s is ApprovalStatus => s !== 'not_found')
+}
+
+/** Most urgent status across a feature's docs — used to group by status. */
+function primaryStatus(f: FeatureEntry): ApprovalStatus {
+  const s = featureStatuses(f)
+  if (s.includes('rejected')) return 'rejected'
+  if (s.includes('pending')) return 'pending'
+  if (s.includes('approved')) return 'approved'
+  return 'not_found'
+}
+
+function FeatureGlyph(): React.ReactElement {
   return (
     <svg viewBox="0 0 16 16" className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.25">
-      <path d="M2.5 4.6l1.1 1.1L5.8 3.5" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M2.5 10.1l1.1 1.1 2.2-2.2" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M8.5 5h5M8.5 10.5h5" strokeLinecap="round" />
+      <path d="M2.5 5l5.5-2.5L13.5 5 8 7.5 2.5 5z" strokeLinejoin="round" />
+      <path d="M2.5 8L8 10.5 13.5 8M2.5 11L8 13.5 13.5 11" strokeLinejoin="round" />
     </svg>
   )
 }
@@ -86,59 +93,50 @@ export function Sidebar({
   const [query, setQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
 
-  const docs: DocEntry[] = features.flatMap((f) =>
-    (['spec', 'plan'] as DocType[])
-      .filter((t) => f[t] !== 'not_found')
-      .map((t) => ({ feature: f.name, type: t, status: f[t] as ApprovalStatus }))
-  )
-
   const counts: Record<StatusFilter, number> = {
-    all: docs.length,
-    pending: docs.filter((d) => d.status === 'pending').length,
-    rejected: docs.filter((d) => d.status === 'rejected').length,
-    approved: docs.filter((d) => d.status === 'approved').length,
+    all: features.length,
+    pending: features.filter((f) => featureStatuses(f).includes('pending')).length,
+    rejected: features.filter((f) => featureStatuses(f).includes('rejected')).length,
+    approved: features.filter((f) => featureStatuses(f).includes('approved')).length,
     not_found: 0,
   }
 
   const q = query.trim().toLowerCase()
-  const filtered = docs.filter(
-    (d) =>
-      (statusFilter === 'all' || d.status === statusFilter) &&
-      (q === '' || d.feature.toLowerCase().includes(q) || d.type.includes(q))
+  const filtered = features.filter(
+    (f) =>
+      (statusFilter === 'all' || featureStatuses(f).includes(statusFilter)) &&
+      (q === '' || f.name.toLowerCase().includes(q) || humanizeFeature(f.name).toLowerCase().includes(q))
   )
   const filtering = q !== '' || statusFilter !== 'all'
 
-  const featureGroups = features
-    .map((f) => ({ name: f.name, docs: filtered.filter((d) => d.feature === f.name) }))
-    .filter((g) => g.docs.length > 0)
-
-  function docRow(d: DocEntry, showFeature: boolean): React.ReactElement {
-    const isSelected = selected?.feature === d.feature && selected?.type === d.type
+  function featureRow(f: FeatureEntry): React.ReactElement {
+    const isSelected = selected?.feature === f.name
+    const types = DOC_TYPES.filter((t) => f[t] !== 'not_found')
     return (
       <button
-        key={`${d.feature}/${d.type}`}
-        onClick={() => onSelect(d.feature, d.type)}
-        aria-label={d.type}
-        title={`${d.feature} ${d.type} — ${statusLabel(d.status)}`}
-        className={`group relative w-full flex items-center gap-2.5 pl-3 pr-2.5 py-1.5 rounded-md text-[13px] transition-colors ${
-          isSelected ? 'bg-railfg/[0.12] text-railfg' : 'text-railfg/60 hover:bg-railfg/[0.06] hover:text-railfg/90'
+        key={f.name}
+        onClick={() => onSelect(f.name)}
+        aria-label={f.name}
+        title={humanizeFeature(f.name)}
+        className={`group relative w-full flex items-center gap-2.5 pl-3 pr-2 py-2 rounded-md text-[13px] transition-colors ${
+          isSelected ? 'bg-railfg/[0.12] text-railfg' : 'text-railfg/65 hover:bg-railfg/[0.06] hover:text-railfg/90'
         }`}
       >
-        {isSelected && <span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-full bg-iris" />}
+        {isSelected && <span className="absolute left-0 top-2 bottom-2 w-0.5 rounded-full bg-iris" />}
         <span className={isSelected ? 'text-railfg/80' : 'text-railfg/40'}>
-          <TypeIcon type={d.type} />
+          <FeatureGlyph />
         </span>
-        {showFeature ? (
-          <span className="truncate">
-            {d.feature}
-            <span className="text-railfg/30">/</span>
-            {d.type}
-          </span>
-        ) : (
-          <span className="capitalize">{d.type}</span>
-        )}
-        <span className="ml-auto text-[11px] leading-none" title={statusLabel(d.status)}>
-          {statusIcon(d.status)}
+        <span className="truncate flex-1 text-left">{humanizeFeature(f.name)}</span>
+        <span className="flex items-center gap-1 shrink-0">
+          {types.map((t) => (
+            <span
+              key={t}
+              title={`${t} — ${statusLabel(f[t])}`}
+              className={`w-4 h-4 grid place-items-center rounded text-[9px] font-bold leading-none ${statusTint(f[t])}`}
+            >
+              {t.charAt(0).toUpperCase()}
+            </span>
+          ))}
         </span>
       </button>
     )
@@ -247,7 +245,7 @@ export function Sidebar({
       <nav className="flex-1 overflow-y-auto px-2 pb-3 pt-2">
         {features.length === 0 && (
           <p className="text-[12px] leading-relaxed text-railfg/35 px-3 py-2">
-            No documents published yet. They appear here once Claude publishes a spec or plan.
+            No features yet. They appear here once Claude publishes a spec or plan.
           </p>
         )}
 
@@ -272,25 +270,19 @@ export function Sidebar({
           </p>
         )}
 
-        {groupBy === 'feature' &&
-          featureGroups.map((g) => (
-            <div key={g.name} className="mb-4">
-              <p className="text-[10.5px] font-semibold text-railfg/40 px-3 mb-1">{g.name}</p>
-              {g.docs.map((d) => docRow(d, false))}
-            </div>
-          ))}
+        {groupBy === 'feature' && filtered.map((f) => featureRow(f))}
 
         {groupBy === 'status' &&
           STATUS_ORDER.map((s) => {
-            const group = filtered.filter((d) => d.status === s)
+            const group = filtered.filter((f) => primaryStatus(f) === s)
             if (group.length === 0) return null
             return (
-              <div key={s} className="mb-4">
+              <div key={s} className="mb-3">
                 <p className="flex items-center gap-1.5 text-[10.5px] font-semibold text-railfg/40 px-3 mb-1">
                   <span className="text-[11px]">{statusIcon(s)}</span>
                   {statusLabel(s)}
                 </p>
-                {group.map((d) => docRow(d, true))}
+                {group.map((f) => featureRow(f))}
               </div>
             )
           })}

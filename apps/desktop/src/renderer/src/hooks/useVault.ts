@@ -6,15 +6,11 @@ export interface Selection {
   type: DocumentType
 }
 
-const sameDoc = (a: Selection, b: Selection): boolean => a.feature === b.feature && a.type === b.type
-
 interface VaultState {
   vaultPath: string
   vaultName: string
   features: FeatureEntry[]
-  /** Documents the user has opened, in tab order. */
-  openTabs: Selection[]
-  /** The currently focused tab. */
+  /** The one feature + document type currently open (only one feature at a time). */
   active: Selection | null
 }
 
@@ -22,10 +18,15 @@ export interface UseVaultReturn {
   state: VaultState | null
   openVault: (path: string, name: string) => Promise<void>
   closeVault: () => void
-  selectDocument: (feature: string, type: DocumentType) => void
-  closeTab: (feature: string, type: DocumentType) => void
+  selectFeature: (feature: string) => void
+  selectType: (type: DocumentType) => void
   refresh: () => Promise<void>
   sync: () => Promise<void>
+}
+
+/** Prefer the spec when it exists, otherwise the plan. */
+function defaultType(f: FeatureEntry): DocumentType {
+  return f.spec !== 'not_found' ? 'spec' : 'plan'
 }
 
 export function useVault(): UseVaultReturn {
@@ -35,7 +36,7 @@ export function useVault(): UseVaultReturn {
   const openVault = useCallback(async (path: string, name: string) => {
     const features = await window.chuckle.features.list(path)
     vaultPathRef.current = path
-    setState({ vaultPath: path, vaultName: name, features, openTabs: [], active: null })
+    setState({ vaultPath: path, vaultName: name, features, active: null })
   }, [])
 
   const closeVault = useCallback(() => {
@@ -43,31 +44,17 @@ export function useVault(): UseVaultReturn {
     setState(null)
   }, [])
 
-  const selectDocument = useCallback((feature: string, type: DocumentType) => {
-    const sel: Selection = { feature, type }
+  const selectFeature = useCallback((feature: string) => {
     setState((prev) => {
       if (!prev) return prev
-      const openTabs = prev.openTabs.some((t) => sameDoc(t, sel))
-        ? prev.openTabs
-        : [...prev.openTabs, sel]
-      return { ...prev, openTabs, active: sel }
+      const entry = prev.features.find((f) => f.name === feature)
+      if (!entry) return prev
+      return { ...prev, active: { feature, type: defaultType(entry) } }
     })
   }, [])
 
-  const closeTab = useCallback((feature: string, type: DocumentType) => {
-    const sel: Selection = { feature, type }
-    setState((prev) => {
-      if (!prev) return prev
-      const idx = prev.openTabs.findIndex((t) => sameDoc(t, sel))
-      if (idx === -1) return prev
-      const openTabs = prev.openTabs.filter((t) => !sameDoc(t, sel))
-      let active = prev.active
-      if (active && sameDoc(active, sel)) {
-        // focus the neighbour that takes the closed tab's place
-        active = openTabs[idx] ?? openTabs[idx - 1] ?? null
-      }
-      return { ...prev, openTabs, active }
-    })
+  const selectType = useCallback((type: DocumentType) => {
+    setState((prev) => (prev && prev.active ? { ...prev, active: { ...prev.active, type } } : prev))
   }, [])
 
   const refresh = useCallback(async () => {
@@ -83,5 +70,5 @@ export function useVault(): UseVaultReturn {
     setState((prev) => (prev ? { ...prev, features } : prev))
   }, [])
 
-  return { state, openVault, closeVault, selectDocument, closeTab, refresh, sync }
+  return { state, openVault, closeVault, selectFeature, selectType, refresh, sync }
 }
