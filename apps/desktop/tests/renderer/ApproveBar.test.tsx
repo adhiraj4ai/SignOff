@@ -57,4 +57,10 @@ describe('ApproveBar', () => {
     fireEvent.click(screen.getByRole('button', { name: /request changes/i }))
     expect(screen.getByRole('button', { name: /^submit$/i })).toBeDisabled()
   })
+
+  it('disables approve when the user is not an allowed approver', () => {
+    render(<ApproveBar vaultPath="/v" feature="f" type="spec" status="pending"
+      canApprove={false} approvers={['lead@org.com']} onActionComplete={() => {}} />)
+    expect(screen.getByRole('button', { name: 'Approve' })).toBeDisabled()
+  })
 })

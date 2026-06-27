@@ -20,6 +20,8 @@ beforeEach(() => {
   vi.resetAllMocks()
   vi.mocked(window.chuckle.document.approve).mockResolvedValue(undefined)
   vi.mocked(window.chuckle.document.reject).mockResolvedValue(undefined)
+  vi.mocked(window.chuckle.vault.author).mockResolvedValue({ name: 'Test', email: 'test@org.com' })
+  vi.mocked(window.chuckle.document.isStale).mockResolvedValue(false)
 })
 
 describe('ReviewPanel', () => {

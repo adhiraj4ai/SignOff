@@ -6,6 +6,8 @@ interface Props {
   feature: string
   type: DocumentType
   status: ApprovalStatus | 'not_found'
+  canApprove?: boolean
+  approvers?: string[]
   onActionComplete: (result?: ReviewResult) => void
 }
 
@@ -14,11 +16,15 @@ export function ApproveBar({
   feature,
   type,
   status,
+  canApprove,
+  approvers,
   onActionComplete,
 }: Props): React.ReactElement {
   const [rejectMode, setRejectMode] = useState(false)
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
+
+  const allowed = canApprove ?? true
 
   if (status !== 'pending') return <></>
 
@@ -45,14 +51,15 @@ export function ApproveBar({
         <div className="space-y-2">
           <button
             onClick={handleApprove}
-            disabled={loading}
+            disabled={loading || !allowed}
+            title={allowed ? undefined : `Only ${approvers?.join(', ')} can approve`}
             className="w-full px-4 py-2 rounded-lg bg-ok text-white text-[13px] font-semibold hover:brightness-95 active:brightness-90 disabled:opacity-50 transition"
           >
             Approve
           </button>
           <button
             onClick={() => setRejectMode(true)}
-            disabled={loading}
+            disabled={loading || !allowed}
             className="w-full px-4 py-2 rounded-lg border border-border text-fg/80 text-[13px] font-medium hover:bg-app disabled:opacity-50 transition"
           >
             Request Changes
