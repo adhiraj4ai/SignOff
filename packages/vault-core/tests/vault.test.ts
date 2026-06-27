@@ -1,112 +1,141 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { VaultManager } from "../src/vault.js";
+import { readManifest, getFeatureDoc, hashContent } from "../src/manifest.js";
+import { readApproval } from "../src/approval.js";
 import fs from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
 
-let tmpDir: string;
+let tmp: string;
+let vaultPath: string;
 let registryDir: string;
 
 beforeEach(async () => {
-  tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "chuckle-vault-"));
+  tmp = await fs.mkdtemp(path.join(os.tmpdir(), "chuckle-vault-"));
+  vaultPath = path.join(tmp, "project", ".signoff");
+  await fs.mkdir(vaultPath, { recursive: true });
   registryDir = await fs.mkdtemp(path.join(os.tmpdir(), "chuckle-registry-"));
   process.env.CHUCKLE_HOME = registryDir;
 });
 
 afterEach(async () => {
-  await fs.rm(tmpDir, { recursive: true, force: true });
+  await fs.rm(tmp, { recursive: true, force: true });
   await fs.rm(registryDir, { recursive: true, force: true });
   delete process.env.CHUCKLE_HOME;
 });
 
 describe("VaultManager.create", () => {
-  it("initializes vault structure", async () => {
-    await VaultManager.create(tmpDir, "test-project", "acme");
-    for (const dir of ["specs", "plans", "approvals"]) {
-      const stat = await fs.stat(path.join(tmpDir, dir));
-      expect(stat.isDirectory()).toBe(true);
-    }
+  it("create scaffolds an empty manifest and no specs/plans dirs", async () => {
+    await VaultManager.create(vaultPath, "proj");
+    const m = await readManifest(vaultPath);
+    expect(m).toEqual({ version: 1, features: {} });
+    await expect(fs.stat(path.join(vaultPath, "specs"))).rejects.toMatchObject({ code: "ENOENT" });
+    const config = JSON.parse(await fs.readFile(path.join(vaultPath, "config.json"), "utf-8"));
+    expect(config.doc_roots).toEqual(["docs", ".superpowers"]);
   });
 
-  it("writes config.json", async () => {
-    await VaultManager.create(tmpDir, "test-project", "acme");
-    const raw = await fs.readFile(path.join(tmpDir, "config.json"), "utf-8");
+  it("writes config.json with name and org", async () => {
+    await VaultManager.create(vaultPath, "test-project", "acme");
+    const raw = await fs.readFile(path.join(vaultPath, "config.json"), "utf-8");
     const config = JSON.parse(raw);
     expect(config.name).toBe("test-project");
     expect(config.org).toBe("acme");
+    expect(config.doc_roots).toEqual(["docs", ".superpowers"]);
   });
 
   it("writes default workflows.json", async () => {
-    await VaultManager.create(tmpDir, "test-project", "acme");
-    const raw = await fs.readFile(path.join(tmpDir, "workflows.json"), "utf-8");
+    await VaultManager.create(vaultPath, "test-project", "acme");
+    const raw = await fs.readFile(path.join(vaultPath, "workflows.json"), "utf-8");
     const wf = JSON.parse(raw);
     expect(wf.spec.min_approvals).toBe(1);
     expect(wf.plan.min_approvals).toBe(1);
+  });
+
+  it("scaffolds approvals/ directory", async () => {
+    await VaultManager.create(vaultPath, "proj");
+    const stat = await fs.stat(path.join(vaultPath, "approvals"));
+    expect(stat.isDirectory()).toBe(true);
   });
 });
 
 describe("VaultManager.open", () => {
   it("opens existing vault", async () => {
-    await VaultManager.create(tmpDir, "test-project", "acme");
-    const vm = await VaultManager.open(tmpDir);
+    await VaultManager.create(vaultPath, "test-project", "acme");
+    const vm = await VaultManager.open(vaultPath);
     expect(vm.config.name).toBe("test-project");
-    expect(vm.vaultPath).toBe(tmpDir);
+    expect(vm.vaultPath).toBe(vaultPath);
   });
 
   it("throws if not a vault", async () => {
-    await expect(VaultManager.open(tmpDir)).rejects.toThrow("not a Chuckle vault");
+    await expect(VaultManager.open(vaultPath)).rejects.toThrow("not a Chuckle vault");
   });
 });
 
-describe("VaultManager.publish", () => {
-  it("copies doc into the vault specs folder and commits", async () => {
-    const vm = await VaultManager.create(tmpDir, "test-project", "acme");
-    const srcDir = await fs.mkdtemp(path.join(os.tmpdir(), "chuckle-src-"));
-    const srcFile = path.join(srcDir, "2026-06-27-user-auth-design.md");
-    await fs.writeFile(srcFile, "# User Auth Spec\n\nContent here.");
+describe("VaultManager.submitForReview", () => {
+  it("registers the doc path and records its hash without copying", async () => {
+    const projectRoot = path.dirname(vaultPath);
+    await fs.mkdir(path.join(projectRoot, "docs"), { recursive: true });
+    await fs.writeFile(path.join(projectRoot, "docs", "a.md"), "# Spec\n");
+    await VaultManager.create(vaultPath, "proj");
+    const vault = await VaultManager.open(vaultPath);
 
-    const result = await vm.publish(srcFile, "user-auth", "spec", "dev@org.com", "Developer");
+    await vault.submitForReview("user-auth", "spec", "docs/a.md", "dev@org.com", "Dev");
 
-    const destStat = await fs.stat(path.join(tmpDir, "specs", "user-auth.md"));
-    expect(destStat.isFile()).toBe(true);
+    const m = await readManifest(vaultPath);
+    expect(getFeatureDoc(m, "user-auth", "spec")).toBe("docs/a.md");
+    // no copy created in the vault
+    await expect(fs.stat(path.join(vaultPath, "specs", "user-auth.md"))).rejects.toMatchObject({ code: "ENOENT" });
+    const rec = await readApproval(vaultPath, "user-auth", "spec");
+    expect(rec?.status).toBe("pending");
+    expect(rec?.history.at(-1)?.content_hash).toBe(hashContent("# Spec\n"));
+    expect(rec?.document).toBe("docs/a.md");
+  });
+
+  it("returns a valid commit sha", async () => {
+    const projectRoot = path.dirname(vaultPath);
+    await fs.mkdir(path.join(projectRoot, "docs"), { recursive: true });
+    await fs.writeFile(path.join(projectRoot, "docs", "spec.md"), "# Spec\n");
+    await VaultManager.create(vaultPath, "proj");
+    const vault = await VaultManager.open(vaultPath);
+
+    const result = await vault.submitForReview("user-auth", "spec", "docs/spec.md", "dev@org.com", "Dev");
     expect(result.commit_sha).toMatch(/^[0-9a-f]{40}$/);
-
-    await fs.rm(srcDir, { recursive: true, force: true });
   });
 
-  it("creates approval record with submitted status", async () => {
-    const vm = await VaultManager.create(tmpDir, "test-project", "acme");
-    const srcDir = await fs.mkdtemp(path.join(os.tmpdir(), "chuckle-src2-"));
-    const srcFile = path.join(srcDir, "2026-06-27-user-auth-design.md");
-    await fs.writeFile(srcFile, "# Spec");
+  it("second submitForReview produces resubmitted action and 2 history entries", async () => {
+    const projectRoot = path.dirname(vaultPath);
+    await fs.mkdir(path.join(projectRoot, "docs"), { recursive: true });
+    await fs.writeFile(path.join(projectRoot, "docs", "spec.md"), "# Spec v1");
+    await VaultManager.create(vaultPath, "proj");
+    const vault = await VaultManager.open(vaultPath);
 
-    await vm.publish(srcFile, "user-auth", "spec", "dev@org.com", "Developer");
+    await vault.submitForReview("user-auth", "spec", "docs/spec.md", "dev@org.com", "Dev");
+    await fs.writeFile(path.join(projectRoot, "docs", "spec.md"), "# Spec v2");
+    await vault.submitForReview("user-auth", "spec", "docs/spec.md", "dev@org.com", "Dev");
 
-    const { readApproval } = await import("../src/approval.js");
-    const record = await readApproval(tmpDir, "user-auth", "spec");
-    expect(record?.status).toBe("pending");
-    expect(record?.history[0].action).toBe("submitted");
-
-    await fs.rm(srcDir, { recursive: true, force: true });
+    const rec = await readApproval(vaultPath, "user-auth", "spec");
+    expect(rec?.history).toHaveLength(2);
+    expect(rec?.history[1].action).toBe("resubmitted");
+    expect(rec?.history[1].content_hash).toBe(hashContent("# Spec v2"));
   });
+});
 
-  it("second publish produces resubmitted action and 2 history entries", async () => {
-    const vm = await VaultManager.create(tmpDir, "test-project", "acme");
-    const srcDir = await fs.mkdtemp(path.join(os.tmpdir(), "chuckle-src3-"));
-    const srcFile = path.join(srcDir, "spec.md");
-    await fs.writeFile(srcFile, "# Spec v1");
+describe("VaultManager.publish (thin alias for submitForReview)", () => {
+  it("registers the doc in the manifest and creates an approval record", async () => {
+    const projectRoot = path.dirname(vaultPath);
+    await fs.mkdir(path.join(projectRoot, "docs"), { recursive: true });
+    await fs.writeFile(path.join(projectRoot, "docs", "user-auth-design.md"), "# User Auth Spec\n");
+    await VaultManager.create(vaultPath, "test-project", "acme");
+    const vm = await VaultManager.open(vaultPath);
 
-    await vm.publish(srcFile, "user-auth", "spec", "dev@org.com", "Developer");
-    await fs.writeFile(srcFile, "# Spec v2");
-    const result2 = await vm.publish(srcFile, "user-auth", "spec", "dev@org.com", "Developer");
+    const result = await vm.publish("docs/user-auth-design.md", "user-auth", "spec", "dev@org.com", "Developer");
 
-    const { readApproval } = await import("../src/approval.js");
-    const record = await readApproval(tmpDir, "user-auth", "spec");
-    expect(record?.history).toHaveLength(2);
-    expect(record?.history[1].action).toBe("resubmitted");
-    expect(result2.commit_sha).toMatch(/^[0-9a-f]{40}$/);
-
-    await fs.rm(srcDir, { recursive: true, force: true });
+    expect(result.commit_sha).toMatch(/^[0-9a-f]{40}$/);
+    const m = await readManifest(vaultPath);
+    expect(getFeatureDoc(m, "user-auth", "spec")).toBe("docs/user-auth-design.md");
+    const rec = await readApproval(vaultPath, "user-auth", "spec");
+    expect(rec?.status).toBe("pending");
+    expect(rec?.history[0].action).toBe("submitted");
   });
 });
 
@@ -114,28 +143,11 @@ describe("VaultManager registry", () => {
   it("registers and lists vaults", async () => {
     await VaultManager.registerVault({
       name: "test-project",
-      path: tmpDir,
+      path: vaultPath,
       last_opened: new Date().toISOString(),
     });
 
     const vaults = await VaultManager.listVaults();
-    expect(vaults.some((v) => v.path === tmpDir)).toBe(true);
+    expect(vaults.some((v) => v.path === vaultPath)).toBe(true);
   });
 });
-
-describe("VaultManager.submitForReview", () => {
-  it("records a submission for an in-place doc without copying", async () => {
-    const fs2 = await import("node:fs/promises");
-    const vm = await VaultManager.create(tmpDir, "p", "o");
-    // the doc is written directly into the vault (docs-as-vault: no publish/copy)
-    await fs2.writeFile(path.join(tmpDir, "specs", "user-auth.md"), "# Spec\n");
-
-    const result = await vm.submitForReview("user-auth", "spec", "dev@org.com", "Dev");
-    expect(result.commit_sha).toMatch(/^[0-9a-f]{40}$/);
-
-    const { readApproval } = await import("../src/approval.js");
-    const record = await readApproval(tmpDir, "user-auth", "spec");
-    expect(record?.status).toBe("pending");
-    expect(record?.history.at(-1)?.action).toBe("submitted");
-  });
-})

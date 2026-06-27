@@ -44,6 +44,7 @@ export interface VaultConfig {
   name: string;
   org?: string;         // optional, legacy; not used by the docs-as-vault flow
   created_at: string;   // ISO 8601 UTC
+  doc_roots?: string[]; // dirs scanned for docs; default ["docs", ".superpowers"]
 }
 
 export interface VaultInfo {
