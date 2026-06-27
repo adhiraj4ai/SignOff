@@ -13,6 +13,8 @@ import {
   approveDocument,
   rejectDocument,
   readVaultWorkflows,
+  writeVaultWorkflows,
+  isDocumentStale,
   getVaultRemote,
   getVaultLog,
   getVaultStatus,
@@ -65,6 +67,8 @@ function registerIpcHandlers(): void {
   ipcMain.handle('document:approve', (_e, { vaultPath, feature, type, message }) => approveDocument(vaultPath, feature, type, message))
   ipcMain.handle('document:reject', (_e, { vaultPath, feature, type, message }) => rejectDocument(vaultPath, feature, type, message))
   ipcMain.handle('workflows:read', (_e, { vaultPath }) => readVaultWorkflows(vaultPath))
+  ipcMain.handle('workflows:write', (_e, { vaultPath, workflows }) => writeVaultWorkflows(vaultPath, workflows))
+  ipcMain.handle('document:is-stale', (_e, { vaultPath, feature, type }) => isDocumentStale(vaultPath, feature, type))
 }
 
 app.whenReady().then(() => {

@@ -13,9 +13,12 @@ import {
   getApprovalStatus,
   listFeatureNames,
   inferFeatureName,
-  documentPath,
-  documentRelPath,
   approvalRelPath,
+  readManifest,
+  resolveDocPath,
+  hashContent,
+  isStale,
+  migrateToIndex,
   type VaultInfo,
   type VaultWorkflows,
   type ApprovalRecord,
@@ -107,21 +110,21 @@ async function walkMarkdown(dir: string): Promise<string[]> {
   return out
 }
 
-/** Detect the project's existing docs (docs/ and .superpowers/) and import each
- *  markdown file into the vault, classified as spec/plan and submitted for review. */
+/** Detect the project's existing docs (docs/ and .superpowers/) and register each
+ *  markdown file in the vault manifest by project-relative path — no copy made. */
 async function importProjectDocs(projectRoot: string, vaultDir: string): Promise<number> {
-  const sources = [path.join(projectRoot, 'docs'), path.join(projectRoot, '.superpowers')]
+  const cfgRoots = ['docs', '.superpowers']
   const { name, email } = await resolveVaultAuthor(vaultDir)
   const vault = await VaultManager.open(vaultDir)
   let count = 0
-  for (const src of sources) {
-    for (const file of await walkMarkdown(src)) {
+  for (const root of cfgRoots) {
+    for (const file of await walkMarkdown(path.join(projectRoot, root))) {
       try {
-        const type = classifyDoc(path.relative(src, file))
+        const rel = path.relative(projectRoot, file).split(path.sep).join('/')
+        const type = classifyDoc(rel)
         const feature = inferFeatureName(path.basename(file))
         if (!feature) continue
-        await fs.copyFile(file, documentPath(vaultDir, feature, type))
-        await vault.submitForReview(feature, type, email, name)
+        await vault.submitForReview(feature, type, rel, email, name)
         count++
       } catch {
         /* skip a doc that fails to import; setup still completes */
@@ -135,7 +138,7 @@ export async function createVault(projectRoot: string, name: string): Promise<Va
   const vaultDir = path.join(projectRoot, VAULT_DIR)
   const manager = await VaultManager.create(vaultDir, name)
   await ensureGitignored(projectRoot)
-  // Detect and ingest the project's existing docs so the vault isn't empty.
+  // Detect and register the project's existing docs so the vault isn't empty.
   // Best-effort: a doc-import failure must not abort setup.
   try {
     await importProjectDocs(projectRoot, vaultDir)
@@ -152,6 +155,8 @@ export async function createVault(projectRoot: string, name: string): Promise<Va
 
 export async function openExistingVault(selected: string): Promise<VaultOpenResult> {
   const vaultDir = await resolveVaultDir(selected)
+  // Migrate legacy docs-as-vault layout to index-by-path (best-effort)
+  try { await migrateToIndex(vaultDir) } catch { /* best-effort */ }
   const manager = await VaultManager.open(vaultDir)
   await VaultManager.registerVault({
     name: manager.config.name,
@@ -183,7 +188,9 @@ export async function listFeatures(vaultPath: string): Promise<FeatureEntry[]> {
 }
 
 export async function readDocument(vaultPath: string, feature: string, type: DocumentType): Promise<string> {
-  return fs.readFile(documentPath(vaultPath, feature, type), 'utf-8')
+  const abs = resolveDocPath(vaultPath, await readManifest(vaultPath), feature, type)
+  if (!abs) throw new Error(`no ${type} registered for ${feature}`)
+  return fs.readFile(abs, 'utf-8')
 }
 
 export async function getDocumentApproval(
@@ -194,17 +201,19 @@ export async function getDocumentApproval(
   return readApproval(vaultPath, feature, type)
 }
 
-/** Overwrite a document in the vault working tree and commit the edit. */
+/** Write the real project file. Content lives in the project repo, not the vault repo.
+ *  Returns { pushed: false } — nothing to push for vault. */
 export async function writeDocument(
   vaultPath: string,
   feature: string,
   type: DocumentType,
   content: string
 ): Promise<ReviewResult> {
-  await fs.writeFile(documentPath(vaultPath, feature, type), content)
-  const { name, email } = await resolveVaultAuthor(vaultPath)
-  await stageAndCommit(vaultPath, [documentRelPath(feature, type)], `docs(${feature}): edit ${type}`, email, name)
-  return trySync(vaultPath)
+  const abs = resolveDocPath(vaultPath, await readManifest(vaultPath), feature, type)
+  if (!abs) throw new Error(`no ${type} registered for ${feature}`)
+  await fs.writeFile(abs, content)
+  // Content lives in the project repo, not the vault — nothing to push here.
+  return { pushed: false, reason: 'document saved to the project; not part of the vault repo' }
 }
 
 export async function approveDocument(
@@ -216,11 +225,16 @@ export async function approveDocument(
   const record = await readApproval(vaultPath, feature, type)
   if (!record) throw new Error(`no approval record for ${feature}/${type}`)
   const { name, email } = await resolveVaultAuthor(vaultPath)
+  // Compute content hash so staleness can be detected later
+  const abs = resolveDocPath(vaultPath, await readManifest(vaultPath), feature, type)
+  let content_hash: string | undefined
+  try { content_hash = abs ? hashContent(await fs.readFile(abs)) : undefined } catch { content_hash = undefined }
   const updated = appendHistory(record, {
     action: 'approved',
     by: email,
     at: new Date().toISOString(),
     message,
+    content_hash,
   })
   await writeApproval(vaultPath, updated)
   await stageAndCommit(vaultPath, [approvalRelPath(feature, type)], `review: approve ${feature}/${type}`, email, name)
@@ -236,11 +250,16 @@ export async function rejectDocument(
   const record = await readApproval(vaultPath, feature, type)
   if (!record) throw new Error(`no approval record for ${feature}/${type}`)
   const { name, email } = await resolveVaultAuthor(vaultPath)
+  // Compute content hash so staleness can be detected later
+  const abs = resolveDocPath(vaultPath, await readManifest(vaultPath), feature, type)
+  let content_hash: string | undefined
+  try { content_hash = abs ? hashContent(await fs.readFile(abs)) : undefined } catch { content_hash = undefined }
   const updated = appendHistory(record, {
     action: 'rejected',
     by: email,
     at: new Date().toISOString(),
     message,
+    content_hash,
   })
   await writeApproval(vaultPath, updated)
   await stageAndCommit(vaultPath, [approvalRelPath(feature, type)], `review: reject ${feature}/${type}`, email, name)
@@ -249,6 +268,26 @@ export async function rejectDocument(
 
 export async function readVaultWorkflows(vaultPath: string): Promise<VaultWorkflows> {
   return readWorkflows(vaultPath)
+}
+
+/** Write and commit the vault's workflows.json. */
+export async function writeVaultWorkflows(vaultPath: string, workflows: VaultWorkflows): Promise<void> {
+  await fs.writeFile(path.join(vaultPath, 'workflows.json'), JSON.stringify(workflows, null, 2) + '\n')
+  const { name, email } = await resolveVaultAuthor(vaultPath)
+  await stageAndCommit(vaultPath, ['workflows.json'], 'chore: update reviewers', email, name)
+}
+
+/** True when the approved document has changed since the approval was recorded. */
+export async function isDocumentStale(vaultPath: string, feature: string, type: DocumentType): Promise<boolean> {
+  const record = await readApproval(vaultPath, feature, type)
+  if (!record) return false
+  const abs = resolveDocPath(vaultPath, await readManifest(vaultPath), feature, type)
+  if (!abs) return false
+  try {
+    return isStale(record, hashContent(await fs.readFile(abs)))
+  } catch {
+    return false
+  }
 }
 
 /** The git identity (name + email) configured for this vault. */

@@ -30,9 +30,12 @@ const api: ChuckleAPI = {
       ipcRenderer.invoke('document:approve', { vaultPath, feature, type, message }),
     reject: (vaultPath, feature, type, message) =>
       ipcRenderer.invoke('document:reject', { vaultPath, feature, type, message }),
+    isStale: (vaultPath, feature, type) =>
+      ipcRenderer.invoke('document:is-stale', { vaultPath, feature, type }),
   },
   workflows: {
     read: (vaultPath) => ipcRenderer.invoke('workflows:read', { vaultPath }),
+    write: (vaultPath, workflows) => ipcRenderer.invoke('workflows:write', { vaultPath, workflows }),
   },
   openExternal: (url) => ipcRenderer.invoke('app:open-external', { url }),
 }
