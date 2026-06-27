@@ -17,6 +17,7 @@ export interface ApprovalHistoryEntry {
   by: string;       // git commit email of the actor
   at: string;       // ISO 8601 UTC
   message: string | null;
+  content_hash?: string;   // sha-256 of the doc bytes when this action was recorded
 }
 
 export interface ApprovalRecord {

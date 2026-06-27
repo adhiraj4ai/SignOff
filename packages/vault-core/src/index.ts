@@ -50,6 +50,7 @@ export {
   writeApproval,
   appendHistory,
   getApprovalStatus,
+  isStale,
 } from "./approval.js";
 
 // Active-feature pointer
