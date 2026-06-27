@@ -25,6 +25,21 @@ export {
   listFeatureNames,
 } from "./layout.js";
 
+// Manifest (index-by-path)
+export type { Manifest, FeatureDocs } from "./manifest.js";
+export {
+  manifestRelPath,
+  projectRootOf,
+  readManifest,
+  writeManifest,
+  getFeatureDoc,
+  setFeatureDoc,
+  removeFeatureDoc,
+  manifestFeatureNames,
+  resolveDocPath,
+  hashContent,
+} from "./manifest.js";
+
 // Workflow
 export { readWorkflows, getWorkflowForType } from "./workflow.js";
 
