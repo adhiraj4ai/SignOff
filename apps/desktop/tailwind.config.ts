@@ -1,10 +1,20 @@
 import type { Config } from 'tailwindcss'
 
 export default {
+  darkMode: 'class',
   content: ['./src/renderer/index.html', './src/renderer/src/**/*.{ts,tsx}'],
   theme: {
     extend: {
       colors: {
+        // Theme-aware semantic tokens (flip via the `dark` class). Defined as
+        // "R G B" CSS vars so Tailwind opacity modifiers (text-fg/50) work.
+        app: 'rgb(var(--app) / <alpha-value>)',
+        surface: 'rgb(var(--surface) / <alpha-value>)',
+        rail: 'rgb(var(--rail) / <alpha-value>)',
+        railfg: 'rgb(var(--railfg) / <alpha-value>)',
+        fg: 'rgb(var(--fg) / <alpha-value>)',
+        border: 'rgb(var(--border) / <alpha-value>)',
+        // Static palette (code blocks, brand, status — same in both themes)
         ink: { DEFAULT: '#16181d', soft: '#21242c', line: '#2c303a' },
         mist: '#f5f6f8',
         line: '#e6e8ec',

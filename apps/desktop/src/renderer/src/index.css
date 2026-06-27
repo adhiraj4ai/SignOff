@@ -2,6 +2,24 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Theme tokens as "R G B" triplets so Tailwind alpha modifiers work. */
+:root {
+  --app: 245 246 248; /* #f5f6f8 */
+  --surface: 255 255 255; /* #ffffff */
+  --rail: 255 255 255; /* light: sidebar is white too */
+  --railfg: 22 24 29; /* dark text on the light rail */
+  --fg: 22 24 29; /* #16181d */
+  --border: 230 232 236; /* #e6e8ec */
+}
+.dark {
+  --app: 21 24 31; /* #15181f */
+  --surface: 28 31 39; /* #1c1f27 */
+  --rail: 15 17 21; /* #0f1115 */
+  --railfg: 231 233 238;
+  --fg: 231 233 238; /* #e7e9ee */
+  --border: 44 48 58; /* #2c303a */
+}
+
 @layer base {
   html,
   body,
@@ -9,7 +27,7 @@
     height: 100%;
   }
   body {
-    @apply bg-mist text-ink font-sans antialiased;
+    @apply bg-app text-fg font-sans antialiased;
   }
   /* Quiet, consistent scrollbars in both rail and reading pane */
   ::-webkit-scrollbar {
@@ -17,10 +35,10 @@
     height: 10px;
   }
   ::-webkit-scrollbar-thumb {
-    @apply bg-black/15 rounded-full border-2 border-solid border-transparent bg-clip-content;
+    @apply bg-fg/20 rounded-full border-2 border-solid border-transparent bg-clip-content;
   }
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-black/25;
+    @apply bg-fg/30;
   }
 }
 
@@ -28,28 +46,28 @@
    styling, so the rendered document needs its own typographic scale. */
 @layer components {
   .doc {
-    @apply font-serif text-[15.5px] leading-[1.78] text-ink/85;
+    @apply font-serif text-[15.5px] leading-[1.78] text-fg/85;
   }
   .doc > :first-child {
     @apply mt-0;
   }
   .doc h1 {
-    @apply font-sans font-semibold text-[26px] leading-tight tracking-[-0.01em] text-ink mt-0 mb-4;
+    @apply font-sans font-semibold text-[26px] leading-tight tracking-[-0.01em] text-fg mt-0 mb-4;
   }
   .doc h2 {
-    @apply font-sans font-semibold text-[19px] tracking-[-0.01em] text-ink mt-9 mb-2.5 pb-2 border-b border-line;
+    @apply font-sans font-semibold text-[19px] tracking-[-0.01em] text-fg mt-9 mb-2.5 pb-2 border-b border-border;
   }
   .doc h3 {
-    @apply font-sans font-semibold text-[15px] text-ink mt-7 mb-1.5;
+    @apply font-sans font-semibold text-[15px] text-fg mt-7 mb-1.5;
   }
   .doc p {
     @apply my-3.5;
   }
   .doc ul {
-    @apply my-3.5 pl-5 list-disc marker:text-ink/30;
+    @apply my-3.5 pl-5 list-disc marker:text-fg/30;
   }
   .doc ol {
-    @apply my-3.5 pl-5 list-decimal marker:text-ink/40;
+    @apply my-3.5 pl-5 list-decimal marker:text-fg/40;
   }
   .doc li {
     @apply my-1.5;
@@ -62,10 +80,10 @@
     @apply text-iris underline underline-offset-2 decoration-iris/30 hover:decoration-iris;
   }
   .doc strong {
-    @apply font-semibold text-ink;
+    @apply font-semibold text-fg;
   }
   .doc code {
-    @apply font-mono text-[0.85em] bg-mist text-ink px-1.5 py-0.5 rounded border border-line;
+    @apply font-mono text-[0.85em] bg-app text-fg px-1.5 py-0.5 rounded border border-border;
   }
   .doc pre {
     @apply font-mono text-[12.5px] leading-relaxed bg-ink text-white/90 rounded-xl p-4 my-5 overflow-x-auto;
@@ -74,20 +92,20 @@
     @apply bg-transparent border-0 p-0 text-inherit;
   }
   .doc blockquote {
-    @apply border-l-2 border-iris/40 pl-4 my-5 text-ink/55 not-italic;
+    @apply border-l-2 border-iris/40 pl-4 my-5 text-fg/55 not-italic;
   }
   .doc hr {
-    @apply my-7 border-line;
+    @apply my-7 border-border;
   }
   .doc table {
-    @apply my-5 w-full text-[13.5px] font-sans border border-line rounded-lg border-separate border-spacing-0;
+    @apply my-5 w-full text-[13.5px] font-sans border border-border rounded-lg border-separate border-spacing-0;
   }
   .doc th,
   .doc td {
-    @apply px-3 py-2 text-left border-b border-line;
+    @apply px-3 py-2 text-left border-b border-border;
   }
   .doc th {
-    @apply bg-mist font-semibold text-ink/70;
+    @apply bg-app font-semibold text-fg/70;
   }
   .doc tr:last-child td {
     @apply border-b-0;

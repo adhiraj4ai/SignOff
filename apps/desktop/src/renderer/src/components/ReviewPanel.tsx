@@ -16,7 +16,7 @@ function statusPill(status: Status): string {
   if (status === 'pending') return 'bg-wait-soft text-wait'
   if (status === 'approved') return 'bg-ok-soft text-ok'
   if (status === 'rejected') return 'bg-stop-soft text-stop'
-  return 'bg-mist text-ink/45'
+  return 'bg-app text-fg/45'
 }
 
 function statusDot(status: Status): string {
@@ -48,11 +48,11 @@ export function ReviewPanel({
   const submittedBy = record?.history.find((e) => e.action === 'submitted')?.by
 
   return (
-    <aside className="w-80 min-w-80 border-l border-line bg-white flex flex-col h-full overflow-y-auto">
-      <div className="px-5 py-4 border-b border-line">
-        <h2 className="text-[11px] font-semibold text-ink/45 mb-3">Review</h2>
+    <aside className="w-80 min-w-80 border-l border-border bg-surface flex flex-col h-full overflow-y-auto">
+      <div className="px-5 py-4 border-b border-border">
+        <h2 className="text-[11px] font-semibold text-fg/45 mb-3">Review</h2>
         {record === undefined ? (
-          <p className="text-[12px] text-ink/40">Loading…</p>
+          <p className="text-[12px] text-fg/40">Loading…</p>
         ) : (
           <div className="space-y-2.5">
             <span
@@ -62,18 +62,18 @@ export function ReviewPanel({
               {statusLabel(status)}
             </span>
             {submittedBy && (
-              <p className="text-[12px] text-ink/50">
-                Submitted by <span className="text-ink/75">{submittedBy}</span>
+              <p className="text-[12px] text-fg/50">
+                Submitted by <span className="text-fg/75">{submittedBy}</span>
               </p>
             )}
             {workflow && status !== 'approved' && (
-              <p className="text-[11.5px] leading-relaxed text-ink/45">
+              <p className="text-[11.5px] leading-relaxed text-fg/45">
                 Needs {workflow.min_approvals} approval
                 {workflow.min_approvals === 1 ? '' : 's'}
                 {workflow.required_approvers.length > 0 && (
                   <>
                     {' '}from{' '}
-                    <span className="text-ink/65">{workflow.required_approvers.join(', ')}</span>
+                    <span className="text-fg/65">{workflow.required_approvers.join(', ')}</span>
                   </>
                 )}
               </p>

@@ -81,6 +81,14 @@ export function App(): React.ReactElement {
   const [autoSyncMs, setAutoSyncMs] = useState<number>(
     () => Number(localStorage.getItem('chuckle.autoSyncMs')) || 0
   )
+  const [theme, setTheme] = useState<'light' | 'dark'>(
+    () => (localStorage.getItem('chuckle.theme') === 'dark' ? 'dark' : 'light')
+  )
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', theme === 'dark')
+    localStorage.setItem('chuckle.theme', theme)
+  }, [theme])
 
   const vaultPath = state?.vaultPath ?? null
   const bump = useCallback(() => setSyncKey((k) => k + 1), [])
@@ -143,7 +151,7 @@ export function App(): React.ReactElement {
   const active = state.active
 
   return (
-    <div className="relative flex flex-col h-screen overflow-hidden bg-mist text-ink">
+    <div className="relative flex flex-col h-screen overflow-hidden bg-app text-fg">
       <div className="flex flex-1 min-h-0">
         <Sidebar
           vaultName={state.vaultName}
@@ -158,11 +166,11 @@ export function App(): React.ReactElement {
           {!active ? (
             <div className="flex-1 grid place-items-center px-8">
               <div className="text-center max-w-sm">
-                <div className="mx-auto w-11 h-11 grid place-items-center rounded-xl bg-white border border-line shadow-panel text-xl">
+                <div className="mx-auto w-11 h-11 grid place-items-center rounded-xl bg-surface border border-border shadow-panel text-xl">
                   📄
                 </div>
-                <h2 className="mt-4 text-[15px] font-semibold text-ink">Pick a document to review</h2>
-                <p className="mt-1.5 text-[13px] leading-relaxed text-ink/50">
+                <h2 className="mt-4 text-[15px] font-semibold text-fg">Pick a document to review</h2>
+                <p className="mt-1.5 text-[13px] leading-relaxed text-fg/50">
                   Choose a spec or plan from the sidebar to read it and approve or request changes.
                 </p>
               </div>
@@ -205,6 +213,8 @@ export function App(): React.ReactElement {
         onSyncNow={syncNow}
         onOpenSourceControl={() => setShowGit(true)}
         onSwitchVault={closeVault}
+        theme={theme}
+        onSetTheme={setTheme}
       />
       {showGit && <GitPanel vaultPath={state.vaultPath} onClose={() => setShowGit(false)} />}
     </div>

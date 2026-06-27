@@ -15,6 +15,8 @@ interface Props {
   onSyncNow: () => void
   onOpenSourceControl: () => void
   onSwitchVault: () => void
+  theme: 'light' | 'dark'
+  onSetTheme: (t: 'light' | 'dark') => void
 }
 
 function ghRepo(url: string | null): { label: string; web: string | null } {
@@ -37,10 +39,10 @@ function relTime(ts: number | null): string {
 }
 
 const cls =
-  'flex items-center gap-1.5 px-2 h-full text-white/55 hover:text-white hover:bg-white/[0.06] transition-colors'
+  'flex items-center gap-1.5 px-2 h-full text-railfg/55 hover:text-railfg hover:bg-railfg/[0.06] transition-colors'
 
 function Sep(): React.ReactElement {
-  return <span className="w-px h-3.5 bg-white/[0.12]" />
+  return <span className="w-px h-3.5 bg-railfg/[0.12]" />
 }
 
 export function StatusBar({
@@ -54,6 +56,8 @@ export function StatusBar({
   onSyncNow,
   onOpenSourceControl,
   onSwitchVault,
+  theme,
+  onSetTheme,
 }: Props): React.ReactElement {
   const [remote, setRemote] = useState<string | null>(null)
   const [status, setStatus] = useState<GitStatus | null>(null)
@@ -106,18 +110,18 @@ export function StatusBar({
   return (
     <footer
       ref={barRef}
-      className="relative h-7 shrink-0 bg-ink border-t border-white/[0.08] flex items-stretch text-[11px] font-mono text-white/55"
+      className="relative h-7 shrink-0 bg-rail border-t border-railfg/[0.08] flex items-stretch text-[11px] font-mono text-railfg/55"
     >
       {/* Identity */}
       <button className={cls} onClick={() => setOpen(open === 'identity' ? null : 'identity')} title="Reviewer identity">
         <span className="w-1.5 h-1.5 rounded-full bg-ok" />
-        <span className="text-white/70">{author?.name ?? '…'}</span>
+        <span className="text-railfg/70">{author?.name ?? '…'}</span>
       </button>
       {open === 'identity' && author && (
         <Popover>
-          <p className="text-ink font-medium">{author.name}</p>
-          <p className="text-ink/55">{author.email}</p>
-          <p className="text-ink/40 mt-1 text-[11px]">Decisions are committed under this git identity.</p>
+          <p className="text-fg font-medium">{author.name}</p>
+          <p className="text-fg/55">{author.email}</p>
+          <p className="text-fg/40 mt-1 text-[11px]">Decisions are committed under this git identity.</p>
         </Popover>
       )}
       <Sep />
@@ -128,8 +132,8 @@ export function StatusBar({
       </button>
       {open === 'vault' && (
         <Popover>
-          <p className="text-ink font-medium">{vaultName}</p>
-          <p className="text-ink/45 font-mono text-[11px] truncate">{vaultPath}</p>
+          <p className="text-fg font-medium">{vaultName}</p>
+          <p className="text-fg/45 font-mono text-[11px] truncate">{vaultPath}</p>
           <button
             onClick={() => {
               setOpen(null)
@@ -146,13 +150,13 @@ export function StatusBar({
       {/* Remote */}
       <button className={cls} onClick={onOpenSourceControl} title={remote ?? 'No git remote'}>
         <GitHubMark />
-        <span className={repo.web ? 'text-white/70' : 'text-white/40'}>{repo.label}</span>
+        <span className={repo.web ? 'text-railfg/70' : 'text-railfg/40'}>{repo.label}</span>
       </button>
       <Sep />
 
       {/* Changes (unsynced) */}
       <button className={cls} onClick={onOpenSourceControl} title="Unsynced commits">
-        <span className={unsynced ? 'text-wait' : 'text-white/55'}>
+        <span className={unsynced ? 'text-wait' : 'text-railfg/55'}>
           {noUpstream ? 'no upstream' : ahead > 0 ? `↑ ${ahead}` : 'up to date'}
         </span>
       </button>
@@ -193,14 +197,30 @@ export function StatusBar({
       </button>
       {open === 'settings' && (
         <Popover align="right">
-          <p className="text-[11px] font-semibold text-ink/45 mb-1.5">Auto-sync with git</p>
+          <p className="text-[11px] font-semibold text-fg/45 mb-1.5">Theme</p>
+          <div className="flex gap-1.5 mb-3">
+            {(['light', 'dark'] as const).map((t) => (
+              <button
+                key={t}
+                onClick={() => onSetTheme(t)}
+                className={`flex-1 capitalize px-2 py-1 rounded-md text-[12px] border transition ${
+                  theme === t
+                    ? 'border-iris bg-iris-soft text-iris-ink font-medium'
+                    : 'border-border text-fg/70 hover:bg-app'
+                }`}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+          <p className="text-[11px] font-semibold text-fg/45 mb-1.5">Auto-sync with git</p>
           <div className="flex flex-col">
             {AUTO_SYNC_OPTIONS.map((o) => (
               <button
                 key={o.ms}
                 onClick={() => onSetAutoSync(o.ms)}
                 className={`flex items-center gap-2 px-2 py-1 rounded text-[12px] text-left ${
-                  o.ms === autoSyncMs ? 'bg-iris-soft text-iris-ink font-medium' : 'text-ink/70 hover:bg-mist'
+                  o.ms === autoSyncMs ? 'bg-iris-soft text-iris-ink font-medium' : 'text-fg/70 hover:bg-app'
                 }`}
               >
                 <span className="w-3">{o.ms === autoSyncMs ? '✓' : ''}</span>
@@ -208,7 +228,7 @@ export function StatusBar({
               </button>
             ))}
           </div>
-          <p className="text-[11px] text-ink/40 mt-1.5">Currently: {autoLabel}</p>
+          <p className="text-[11px] text-fg/40 mt-1.5">Currently: {autoLabel}</p>
         </Popover>
       )}
     </footer>
@@ -224,7 +244,7 @@ function Popover({
 }): React.ReactElement {
   return (
     <div
-      className={`absolute bottom-8 ${align === 'right' ? 'right-2' : 'left-2'} z-40 w-60 rounded-xl border border-line bg-white shadow-panel p-3 font-sans text-[13px] text-ink`}
+      className={`absolute bottom-8 ${align === 'right' ? 'right-2' : 'left-2'} z-40 w-60 rounded-xl border border-border bg-surface shadow-panel p-3 font-sans text-[13px] text-fg`}
       onMouseDown={(e) => e.stopPropagation()}
     >
       {children}

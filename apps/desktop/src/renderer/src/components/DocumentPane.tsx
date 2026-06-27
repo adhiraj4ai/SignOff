@@ -131,7 +131,7 @@ export function DocumentPane({
   }, [vaultPath, feature, type])
 
   if (content === null) {
-    return <div className="flex-1 grid place-items-center text-sm text-ink/40">Loading…</div>
+    return <div className="flex-1 grid place-items-center text-sm text-fg/40">Loading…</div>
   }
 
   const editing = view !== 'read'
@@ -204,7 +204,7 @@ export function DocumentPane({
       aria-label={label}
       aria-pressed={view === mode}
       className={`grid place-items-center w-7 h-7 rounded-md transition ${
-        view === mode ? 'bg-white text-ink shadow-sm' : 'text-ink/45 hover:text-ink/80'
+        view === mode ? 'bg-surface text-fg shadow-sm' : 'text-fg/45 hover:text-fg/80'
       }`}
     >
       <Glyph />
@@ -216,19 +216,19 @@ export function DocumentPane({
       onClick={onClick}
       title={label}
       aria-label={label}
-      className="grid place-items-center w-7 h-7 rounded-md text-ink/50 hover:text-ink hover:bg-mist transition"
+      className="grid place-items-center w-7 h-7 rounded-md text-fg/50 hover:text-fg hover:bg-app transition"
     >
       {glyph}
     </button>
   )
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-mist min-w-0">
-      <header className="bg-white border-b border-line">
+    <div className="flex-1 flex flex-col overflow-hidden bg-app min-w-0">
+      <header className="bg-surface border-b border-border">
         <div className="max-w-[1100px] mx-auto w-full px-6 py-2 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-1.5 font-mono text-[11px] text-ink/45 min-w-0">
-            <span className="text-ink/70 truncate">{feature}</span>
-            <span className="text-ink/25">/</span>
+          <div className="flex items-center gap-1.5 font-mono text-[11px] text-fg/45 min-w-0">
+            <span className="text-fg/70 truncate">{feature}</span>
+            <span className="text-fg/25">/</span>
             <span>{type}</span>
           </div>
 
@@ -240,7 +240,7 @@ export function DocumentPane({
                 {formatBtn('Inline code', <span className="font-mono text-[12px]">{'</>'}</span>, () => wrap('`', '`'))}
                 {formatBtn('List', <ListIcon />, () => linePrefix('- '))}
                 {formatBtn('Link', <LinkIcon />, () => wrap('[', '](url)'))}
-                <span className="w-px h-5 bg-line mx-1" />
+                <span className="w-px h-5 bg-border mx-1" />
               </>
             )}
             {formatBtn(copied ? 'Copied!' : 'Copy markdown', <CopyIcon />, copy)}
@@ -248,19 +248,19 @@ export function DocumentPane({
               formatBtn(fullWidth ? 'Center content' : 'Full width', <WidthIcon full={fullWidth} />, () =>
                 setFullWidth((v) => !v)
               )}
-            <span className="w-px h-5 bg-line mx-1" />
-            <div className="flex items-center gap-0.5 bg-mist rounded-lg p-0.5">
+            <span className="w-px h-5 bg-border mx-1" />
+            <div className="flex items-center gap-0.5 bg-app rounded-lg p-0.5">
               {viewBtn('read', 'Read', ReadIcon)}
               {viewBtn('split', 'Split', SplitIcon)}
               {viewBtn('edit', 'Edit', CodeIcon)}
             </div>
             {dirty && (
               <>
-                <span className="w-px h-5 bg-line mx-1" />
+                <span className="w-px h-5 bg-border mx-1" />
                 <button
                   onClick={cancel}
                   disabled={saving}
-                  className="text-[12px] font-medium text-ink/60 px-2.5 py-1 rounded-md hover:bg-mist transition"
+                  className="text-[12px] font-medium text-fg/60 px-2.5 py-1 rounded-md hover:bg-app transition"
                 >
                   Cancel
                 </button>
@@ -293,7 +293,7 @@ export function DocumentPane({
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           spellCheck={false}
-          className="flex-1 resize-none bg-white font-mono text-[13px] leading-relaxed text-ink/90 px-8 py-8 focus:outline-none"
+          className="flex-1 resize-none bg-surface font-mono text-[13px] leading-relaxed text-fg/90 px-8 py-8 focus:outline-none"
         />
       )}
 
@@ -304,9 +304,9 @@ export function DocumentPane({
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             spellCheck={false}
-            className="w-1/2 resize-none bg-white font-mono text-[13px] leading-relaxed text-ink/90 px-6 py-6 border-r border-line focus:outline-none"
+            className="w-1/2 resize-none bg-surface font-mono text-[13px] leading-relaxed text-fg/90 px-6 py-6 border-r border-border focus:outline-none"
           />
-          <div className="w-1/2 overflow-y-auto bg-mist">
+          <div className="w-1/2 overflow-y-auto bg-app">
             <article className="doc w-full px-6 py-6">
               <Markdown content={draft} />
             </article>

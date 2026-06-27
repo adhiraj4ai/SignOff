@@ -85,18 +85,18 @@ export function GitPanel({ vaultPath, onClose }: Props): React.ReactElement {
   return (
     <div className="fixed inset-0 z-30 flex justify-end bg-ink/30 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="w-[460px] max-w-full h-full bg-white border-l border-line shadow-panel flex flex-col"
+        className="w-[460px] max-w-full h-full bg-surface border-l border-border shadow-panel flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        <header className="px-5 h-14 flex items-center justify-between border-b border-line shrink-0">
+        <header className="px-5 h-14 flex items-center justify-between border-b border-border shrink-0">
           <div className="min-w-0">
-            <h2 className="text-[14px] font-semibold text-ink">Source control</h2>
-            <p className="text-[11.5px] font-mono text-ink/45 truncate">{repoLabel(remote)}</p>
+            <h2 className="text-[14px] font-semibold text-fg">Source control</h2>
+            <p className="text-[11.5px] font-mono text-fg/45 truncate">{repoLabel(remote)}</p>
           </div>
           <button
             onClick={onClose}
             aria-label="Close source control"
-            className="w-7 h-7 grid place-items-center rounded-md text-ink/40 hover:text-ink hover:bg-mist"
+            className="w-7 h-7 grid place-items-center rounded-md text-fg/40 hover:text-fg hover:bg-app"
           >
             <svg viewBox="0 0 12 12" className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="1.5">
               <path d="M2 2l8 8M10 2l-8 8" strokeLinecap="round" />
@@ -104,22 +104,22 @@ export function GitPanel({ vaultPath, onClose }: Props): React.ReactElement {
           </button>
         </header>
 
-        <div className="px-5 py-3 border-b border-line flex items-center gap-2 shrink-0">
-          <div className="flex items-center gap-2 text-[12px] text-ink/60 mr-auto">
-            <span className="font-mono text-ink/80">{status?.branch ?? '—'}</span>
+        <div className="px-5 py-3 border-b border-border flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 text-[12px] text-fg/60 mr-auto">
+            <span className="font-mono text-fg/80">{status?.branch ?? '—'}</span>
             {status?.tracking ? (
-              <span className="flex items-center gap-1.5 text-ink/45">
+              <span className="flex items-center gap-1.5 text-fg/45">
                 <span title="commits to push">↑ {ahead}</span>
                 <span title="commits to pull">↓ {behind}</span>
               </span>
             ) : (
-              <span className="text-ink/35">no upstream</span>
+              <span className="text-fg/35">no upstream</span>
             )}
           </div>
           <button
             onClick={pull}
             disabled={busy !== null}
-            className="text-[12px] font-medium px-2.5 py-1 rounded-md border border-line text-ink/70 hover:bg-mist disabled:opacity-50"
+            className="text-[12px] font-medium px-2.5 py-1 rounded-md border border-border text-fg/70 hover:bg-app disabled:opacity-50"
           >
             {busy === 'pull' ? 'Pulling…' : 'Pull'}
           </button>
@@ -143,14 +143,14 @@ export function GitPanel({ vaultPath, onClose }: Props): React.ReactElement {
         </div>
 
         {note && (
-          <div className="px-5 py-2 text-[12px] text-ink/55 bg-mist border-b border-line shrink-0">{note}</div>
+          <div className="px-5 py-2 text-[12px] text-fg/55 bg-app border-b border-border shrink-0">{note}</div>
         )}
 
         <div className="flex-1 overflow-y-auto px-5 py-4">
           {commits === null ? (
-            <p className="text-[12px] text-ink/40">Loading history…</p>
+            <p className="text-[12px] text-fg/40">Loading history…</p>
           ) : commits.length === 0 ? (
-            <p className="text-[12px] text-ink/40">No commits yet.</p>
+            <p className="text-[12px] text-fg/40">No commits yet.</p>
           ) : (
             <ol className="relative">
               {commits.map((c, i) => {
@@ -159,7 +159,7 @@ export function GitPanel({ vaultPath, onClose }: Props): React.ReactElement {
                   <li key={c.hash} className="relative pl-6 pb-4 last:pb-0">
                     {/* graph line */}
                     {i < commits.length - 1 && (
-                      <span className="absolute left-[5px] top-3 bottom-0 w-px bg-line" />
+                      <span className="absolute left-[5px] top-3 bottom-0 w-px bg-border" />
                     )}
                     {/* graph dot */}
                     <span
@@ -169,10 +169,10 @@ export function GitPanel({ vaultPath, onClose }: Props): React.ReactElement {
                       title={unpushed ? 'not pushed yet' : 'pushed'}
                     />
                     <div className="flex items-baseline gap-2">
-                      <p className="text-[13px] text-ink leading-snug flex-1 min-w-0">{c.message}</p>
-                      <span className="font-mono text-[11px] text-ink/35 shrink-0">{c.short}</span>
+                      <p className="text-[13px] text-fg leading-snug flex-1 min-w-0">{c.message}</p>
+                      <span className="font-mono text-[11px] text-fg/35 shrink-0">{c.short}</span>
                     </div>
-                    <p className="text-[11.5px] text-ink/45 mt-0.5">
+                    <p className="text-[11.5px] text-fg/45 mt-0.5">
                       {c.author} · {relTime(c.date)}
                       {c.refs && <span className="ml-1.5 text-iris">{c.refs}</span>}
                     </p>

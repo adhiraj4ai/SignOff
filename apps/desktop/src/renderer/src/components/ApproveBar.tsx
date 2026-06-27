@@ -40,7 +40,7 @@ export function ApproveBar({
   }
 
   return (
-    <div className="px-5 py-4 border-b border-line">
+    <div className="px-5 py-4 border-b border-border">
       {!rejectMode ? (
         <div className="space-y-2">
           <button
@@ -53,14 +53,14 @@ export function ApproveBar({
           <button
             onClick={() => setRejectMode(true)}
             disabled={loading}
-            className="w-full px-4 py-2 rounded-lg border border-line text-ink/80 text-[13px] font-medium hover:bg-mist disabled:opacity-50 transition"
+            className="w-full px-4 py-2 rounded-lg border border-border text-fg/80 text-[13px] font-medium hover:bg-app disabled:opacity-50 transition"
           >
             Request Changes
           </button>
         </div>
       ) : (
         <div>
-          <label className="block text-[12px] font-medium text-ink/60 mb-1.5">
+          <label className="block text-[12px] font-medium text-fg/60 mb-1.5">
             What needs to change?
           </label>
           <textarea
@@ -69,7 +69,7 @@ export function ApproveBar({
             onChange={(e) => setMessage(e.target.value)}
             rows={4}
             autoFocus
-            className="w-full rounded-lg border border-line bg-white px-3 py-2 text-[13px] leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-iris/30 focus:border-iris/50 placeholder:text-ink/30"
+            className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-[13px] leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-iris/30 focus:border-iris/50 placeholder:text-fg/30"
           />
           <div className="flex gap-2 mt-2.5">
             <button
@@ -84,7 +84,7 @@ export function ApproveBar({
                 setRejectMode(false)
                 setMessage('')
               }}
-              className="px-4 py-2 rounded-lg border border-line text-ink/70 text-[13px] font-medium hover:bg-mist transition"
+              className="px-4 py-2 rounded-lg border border-border text-fg/70 text-[13px] font-medium hover:bg-app transition"
             >
               Cancel
             </button>
