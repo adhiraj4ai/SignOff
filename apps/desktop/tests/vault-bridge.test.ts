@@ -52,21 +52,21 @@ describe('listVaults', () => {
 })
 
 describe('createVault', () => {
-  it('creates .chuckle in the project root, gitignores it, and registers it', async () => {
+  it('creates .signoff in the project root, gitignores it, and registers it', async () => {
     const projectRoot = path.join(tmpDir, 'my-project')
     await fs.mkdir(projectRoot, { recursive: true })
     const result = await createVault(projectRoot, 'my-project', 'my-org')
 
-    const vaultDir = path.join(projectRoot, '.chuckle')
+    const vaultDir = path.join(projectRoot, '.signoff')
     expect(result.name).toBe('my-project')
     expect(result.path).toBe(vaultDir)
 
-    // vault exists at <project>/.chuckle
+    // vault exists at <project>/.signoff
     expect((await fs.stat(path.join(vaultDir, 'config.json'))).isFile()).toBe(true)
     // parent project gitignores the vault
     const gitignore = await fs.readFile(path.join(projectRoot, '.gitignore'), 'utf-8')
-    expect(gitignore).toContain('.chuckle/')
-    // registered at the .chuckle dir
+    expect(gitignore).toContain('.signoff/')
+    // registered at the .signoff dir
     const vaults = await listVaults()
     expect(vaults.some((v) => v.path === vaultDir)).toBe(true)
   })

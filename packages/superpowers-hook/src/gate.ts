@@ -10,7 +10,7 @@ import type { PreToolUseEvent, GateDecision } from "./types.js";
 
 const SPECS_DIR = "docs/superpowers/specs";
 const PLANS_DIR = "docs/superpowers/plans";
-const CHUCKLE_DIR = ".chuckle";
+const CHUCKLE_DIR = ".signoff";
 
 function isUnder(rel: string, base: string): boolean {
   return rel === base || rel.startsWith(base + "/");

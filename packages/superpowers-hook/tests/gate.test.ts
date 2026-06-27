@@ -61,8 +61,8 @@ describe("evaluateGate", () => {
     expect(decision.allow).toBe(true);
   });
 
-  it("allows writes to the .chuckle pointer", async () => {
-    const decision = await evaluateGate(writeEvent(".chuckle/active-feature.json"));
+  it("allows writes to the .signoff vault dir", async () => {
+    const decision = await evaluateGate(writeEvent(".signoff/active-feature.json"));
     expect(decision.allow).toBe(true);
   });
 

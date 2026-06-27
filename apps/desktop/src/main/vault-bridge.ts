@@ -51,7 +51,9 @@ export async function removeVault(vaultPath: string): Promise<void> {
   return VaultManager.removeVault(vaultPath)
 }
 
-/** Add `.chuckle/` to the project's .gitignore so the vault stays uncommitted there. */
+const VAULT_DIR = '.signoff'
+
+/** Add `.signoff/` to the project's .gitignore so the vault stays uncommitted there. */
 async function ensureGitignored(projectRoot: string): Promise<void> {
   const gitignore = path.join(projectRoot, '.gitignore')
   let content = ''
@@ -60,21 +62,24 @@ async function ensureGitignored(projectRoot: string): Promise<void> {
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err
   }
-  if (content.split(/\r?\n/).some((l) => l.trim() === '.chuckle/' || l.trim() === '.chuckle')) return
+  if (content.split(/\r?\n/).some((l) => l.trim() === `${VAULT_DIR}/` || l.trim() === VAULT_DIR)) return
   const prefix = content && !content.endsWith('\n') ? content + '\n' : content
-  await fs.writeFile(gitignore, `${prefix}.chuckle/\n`)
+  await fs.writeFile(gitignore, `${prefix}${VAULT_DIR}/\n`)
 }
 
 /** Resolve a user-picked directory to a vault dir: a project root resolves to
- *  its `.chuckle/`; an already-vault dir (has config.json) is used directly. */
+ *  its `.signoff/` (or legacy `.chuckle/`); an already-vault dir is used directly. */
 async function resolveVaultDir(selected: string): Promise<string> {
-  const nested = path.join(selected, '.chuckle')
-  try {
-    await fs.access(path.join(nested, 'config.json'))
-    return nested
-  } catch {
-    return selected
+  for (const name of [VAULT_DIR, '.chuckle']) {
+    const nested = path.join(selected, name)
+    try {
+      await fs.access(path.join(nested, 'config.json'))
+      return nested
+    } catch {
+      /* not this one */
+    }
   }
+  return selected
 }
 
 /** Classify a markdown file as spec or plan from its path/filename. */
@@ -94,7 +99,7 @@ async function walkMarkdown(dir: string): Promise<string[]> {
     return out
   }
   for (const e of entries) {
-    if (e.name === '.chuckle' || e.name === '.git' || e.name === 'node_modules') continue
+    if (e.name === '.signoff' || e.name === '.chuckle' || e.name === '.git' || e.name === 'node_modules') continue
     const full = path.join(dir, e.name)
     if (e.isDirectory()) out.push(...(await walkMarkdown(full)))
     else if (e.isFile() && e.name.toLowerCase().endsWith('.md')) out.push(full)
@@ -111,12 +116,16 @@ async function importProjectDocs(projectRoot: string, vaultDir: string): Promise
   let count = 0
   for (const src of sources) {
     for (const file of await walkMarkdown(src)) {
-      const type = classifyDoc(path.relative(src, file))
-      const feature = inferFeatureName(path.basename(file))
-      if (!feature) continue
-      await fs.copyFile(file, documentPath(vaultDir, feature, type))
-      await vault.submitForReview(feature, type, email, name)
-      count++
+      try {
+        const type = classifyDoc(path.relative(src, file))
+        const feature = inferFeatureName(path.basename(file))
+        if (!feature) continue
+        await fs.copyFile(file, documentPath(vaultDir, feature, type))
+        await vault.submitForReview(feature, type, email, name)
+        count++
+      } catch {
+        /* skip a doc that fails to import; setup still completes */
+      }
     }
   }
   return count
@@ -127,11 +136,16 @@ export async function createVault(
   name: string,
   org: string
 ): Promise<VaultOpenResult> {
-  const vaultDir = path.join(projectRoot, '.chuckle')
+  const vaultDir = path.join(projectRoot, VAULT_DIR)
   const manager = await VaultManager.create(vaultDir, name, org)
   await ensureGitignored(projectRoot)
   // Detect and ingest the project's existing docs so the vault isn't empty.
-  await importProjectDocs(projectRoot, vaultDir)
+  // Best-effort: a doc-import failure must not abort setup.
+  try {
+    await importProjectDocs(projectRoot, vaultDir)
+  } catch {
+    /* ignore — vault is created; docs can be added later */
+  }
   await VaultManager.registerVault({
     name: manager.config.name,
     path: vaultDir,

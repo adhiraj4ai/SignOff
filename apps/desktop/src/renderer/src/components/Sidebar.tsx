@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import type { FeatureEntry, ApprovalStatus } from '@shared/ipc-types'
+import { Logo } from './Logo'
 
 type DocType = 'spec' | 'plan'
 type Status = ApprovalStatus | 'not_found'
@@ -118,9 +119,7 @@ export function Sidebar({
           title="Switch project"
           className="group flex items-center gap-2.5 min-w-0 px-1 py-1 rounded-md hover:bg-railfg/[0.08] transition-colors"
         >
-          <span className="grid place-items-center w-6 h-6 rounded-md bg-iris text-white text-[13px] font-bold shrink-0">
-            C
-          </span>
+          <Logo size={24} className="shrink-0" />
           <span className="font-semibold text-[13px] text-railfg/95 truncate" title={vaultName}>
             {vaultName}
           </span>
@@ -186,7 +185,7 @@ export function Sidebar({
       </nav>
 
       <footer className="px-4 py-2.5 border-t border-railfg/[0.08] text-[10.5px] tracking-wide text-railfg/30">
-        Chuckle · review &amp; approve
+        Signoff · review &amp; approve
       </footer>
     </aside>
   )

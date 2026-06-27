@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import type { VaultInfo } from '@shared/ipc-types'
+import { Logo } from './Logo'
 
 interface Props {
   onVaultSelected: (vaultPath: string, vaultName: string) => void
@@ -12,16 +13,23 @@ export function VaultSwitcher({ onVaultSelected }: Props): React.ReactElement {
   const [modal, setModal] = useState<Modal>('none')
   const [newName, setNewName] = useState('')
   const [newOrg, setNewOrg] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [creating, setCreating] = useState(false)
 
   useEffect(() => {
     window.chuckle.vault.list().then(setVaults)
   }, [])
 
   async function handleOpenVault(): Promise<void> {
-    const dir = await window.chuckle.vault.selectDirectory()
-    if (!dir) return
-    const vault = await window.chuckle.vault.openExisting(dir)
-    onVaultSelected(vault.path, vault.name)
+    setError(null)
+    try {
+      const dir = await window.chuckle.vault.selectDirectory()
+      if (!dir) return
+      const vault = await window.chuckle.vault.openExisting(dir)
+      onVaultSelected(vault.path, vault.name)
+    } catch (e) {
+      setError(`Couldn't open that folder: ${e instanceof Error ? e.message : String(e)}`)
+    }
   }
 
   async function handleRemove(vaultPath: string): Promise<void> {
@@ -30,11 +38,19 @@ export function VaultSwitcher({ onVaultSelected }: Props): React.ReactElement {
   }
 
   async function handleCreateVault(): Promise<void> {
+    setError(null)
     const dir = await window.chuckle.vault.selectDirectory()
     if (!dir) return
-    const vault = await window.chuckle.vault.create(dir, newName, newOrg)
-    onVaultSelected(vault.path, vault.name)
-    setModal('none')
+    setCreating(true)
+    try {
+      const vault = await window.chuckle.vault.create(dir, newName, newOrg)
+      setModal('none')
+      onVaultSelected(vault.path, vault.name)
+    } catch (e) {
+      setError(`Setup failed: ${e instanceof Error ? e.message : String(e)}`)
+    } finally {
+      setCreating(false)
+    }
   }
 
   if (vaults === null) {
@@ -45,10 +61,8 @@ export function VaultSwitcher({ onVaultSelected }: Props): React.ReactElement {
     <div className="min-h-screen bg-app flex flex-col items-center justify-center p-8">
       <div className="w-full max-w-md">
         <div className="flex items-center gap-3 mb-1">
-          <span className="grid place-items-center w-9 h-9 rounded-xl bg-ink text-white text-lg font-bold">
-            C
-          </span>
-          <h1 className="text-[28px] font-semibold tracking-[-0.02em] text-fg">Chuckle</h1>
+          <Logo size={38} />
+          <h1 className="text-[28px] font-semibold tracking-[-0.02em] text-fg">Signoff</h1>
         </div>
         <p className="text-fg/50 text-[14px] mb-8 pl-0.5">
           Review and approve specs &amp; plans before the code gets written.
@@ -57,7 +71,7 @@ export function VaultSwitcher({ onVaultSelected }: Props): React.ReactElement {
         {vaults.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border bg-surface/60 px-5 py-8 text-center mb-5">
             <p className="text-[13.5px] text-fg/55">
-              No projects yet. Set Chuckle up in a project, or open an existing vault.
+              No projects yet. Set Signoff up in a project, or open an existing vault.
             </p>
           </div>
         ) : (
@@ -108,6 +122,11 @@ export function VaultSwitcher({ onVaultSelected }: Props): React.ReactElement {
             Open
           </button>
         </div>
+        {error && (
+          <p className="mt-3 text-[12.5px] text-stop bg-stop-soft border border-stop/20 rounded-lg px-3 py-2">
+            {error}
+          </p>
+        )}
       </div>
 
       {modal === 'new-vault' && (
@@ -119,10 +138,10 @@ export function VaultSwitcher({ onVaultSelected }: Props): React.ReactElement {
             className="bg-surface rounded-2xl p-6 w-[22rem] shadow-panel"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="font-semibold text-[17px] text-fg mb-1">Set up Chuckle in a project</h2>
+            <h2 className="font-semibold text-[17px] text-fg mb-1">Set up Signoff in a project</h2>
             <p className="text-[12.5px] text-fg/50 mb-5">
-              You&apos;ll pick your project folder next. Chuckle creates a{' '}
-              <span className="font-mono text-fg/70">.chuckle/</span> vault inside it (its own git
+              You&apos;ll pick your project folder next. Signoff creates a{' '}
+              <span className="font-mono text-fg/70">.signoff/</span> vault inside it (its own git
               repo) and keeps it out of the project&apos;s own git.
             </p>
             <label className="block text-[12px] font-medium text-fg/60 mb-1">Project name</label>
@@ -140,19 +159,25 @@ export function VaultSwitcher({ onVaultSelected }: Props): React.ReactElement {
               value={newOrg}
               onChange={(e) => setNewOrg(e.target.value)}
             />
+            {error && (
+              <p className="mb-3 text-[12.5px] text-stop bg-stop-soft border border-stop/20 rounded-lg px-3 py-2">
+                {error}
+              </p>
+            )}
             <div className="flex gap-2 justify-end">
               <button
                 onClick={() => setModal('none')}
-                className="px-4 py-2 text-[13px] font-medium rounded-lg border border-border text-fg/70 hover:bg-app transition"
+                disabled={creating}
+                className="px-4 py-2 text-[13px] font-medium rounded-lg border border-border text-fg/70 hover:bg-app disabled:opacity-50 transition"
               >
                 Cancel
               </button>
               <button
                 onClick={handleCreateVault}
-                disabled={!newName.trim() || !newOrg.trim()}
+                disabled={!newName.trim() || !newOrg.trim() || creating}
                 className="px-4 py-2 text-[13px] font-semibold rounded-lg bg-iris text-white hover:bg-iris-ink disabled:opacity-50 transition"
               >
-                Create
+                {creating ? 'Setting up…' : 'Create'}
               </button>
             </div>
           </div>
