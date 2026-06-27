@@ -6,3 +6,6 @@ apps/desktop/out/
 .DS_Store
 docs/superpowers/
 .superpowers/
+
+# Chuckle project-local state (active-feature pointer)
+.chuckle/

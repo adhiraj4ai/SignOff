@@ -3,6 +3,7 @@ import { simpleGit } from "simple-git";
 import {
   VaultManager,
   inferFeatureName,
+  writeActiveFeature,
   type DocumentType,
   type PublishResult,
 } from "@chuckle/vault-core";
@@ -20,7 +21,8 @@ async function resolveGitAuthor(vaultPath: string): Promise<{ name: string; emai
 
 export async function handlePublish(
   vaultPath: string,
-  args: unknown
+  args: unknown,
+  projectRoot: string = process.cwd()
 ): Promise<PublishResult> {
   if (typeof args !== "object" || args === null) {
     throw new Error("args must be a plain object");
@@ -48,5 +50,8 @@ export async function handlePublish(
 
   const { name, email } = await resolveGitAuthor(vaultPath);
   const vault = await VaultManager.open(vaultPath);
-  return vault.publish(source_path, resolvedFeature, resolvedType, email, name);
+  const result = await vault.publish(source_path, resolvedFeature, resolvedType, email, name);
+  // Best-effort pointer write after a successful publish; a write failure here surfaces as a publish error.
+  await writeActiveFeature(projectRoot, { feature: resolvedFeature, vaultPath });
+  return result;
 }

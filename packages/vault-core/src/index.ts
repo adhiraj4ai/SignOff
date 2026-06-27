@@ -29,6 +29,10 @@ export {
   getApprovalStatus,
 } from "./approval.js";
 
+// Active-feature pointer
+export type { ActiveFeature } from "./activeFeature.js";
+export { writeActiveFeature, readActiveFeature } from "./activeFeature.js";
+
 // Git
 export {
   initVaultRepo,

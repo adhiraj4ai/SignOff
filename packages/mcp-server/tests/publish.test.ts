@@ -71,4 +71,40 @@ describe("handlePublish", () => {
       })
     ).rejects.toThrow(/document_type/);
   });
+
+  it("writes the active-feature pointer to the project root on publish", async () => {
+    const projectRoot = path.join(tmpDir, "project");
+    await fs.mkdir(projectRoot, { recursive: true });
+
+    await handlePublish(
+      vaultPath,
+      { source_path: sourcePath, feature_name: "user-auth", document_type: "spec" },
+      projectRoot
+    );
+
+    const pointer = JSON.parse(
+      await fs.readFile(path.join(projectRoot, ".chuckle", "active-feature.json"), "utf-8")
+    );
+    expect(pointer.feature).toBe("user-auth");
+    expect(pointer.vaultPath).toBe(vaultPath);
+    expect(pointer.publishedAt).toMatch(/^\d{4}-\d{2}-\d{2}T.*Z$/);
+  });
+
+  it("records the inferred feature name in the pointer when not provided", async () => {
+    const projectRoot = path.join(tmpDir, "project2");
+    await fs.mkdir(projectRoot, { recursive: true });
+
+    await handlePublish(
+      vaultPath,
+      { source_path: sourcePath, document_type: "spec" },
+      projectRoot
+    );
+
+    const pointer = JSON.parse(
+      await fs.readFile(path.join(projectRoot, ".chuckle", "active-feature.json"), "utf-8")
+    );
+    expect(pointer.feature).toBe("user-auth");
+    expect(pointer.vaultPath).toBe(vaultPath);
+    expect(pointer.publishedAt).toMatch(/^\d{4}-\d{2}-\d{2}T.*Z$/);
+  });
 });

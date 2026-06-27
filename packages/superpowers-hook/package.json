@@ -1,0 +1,31 @@
+{
+  "name": "@chuckle/superpowers-hook",
+  "version": "0.1.0",
+  "description": "Chuckle PreToolUse hook — gates implementation behind vault approval",
+  "type": "module",
+  "main": "dist/cli.js",
+  "bin": {
+    "chuckle-gate": "dist/cli.js"
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/cli.ts",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@chuckle/vault-core": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

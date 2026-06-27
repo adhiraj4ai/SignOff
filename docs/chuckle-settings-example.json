@@ -4,5 +4,13 @@
       "command": "chuckle-mcp",
       "args": ["--vault", "/absolute/path/to/your-project-vault"]
     }
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit|NotebookEdit",
+        "hooks": [{ "type": "command", "command": "chuckle-gate" }]
+      }
+    ]
   }
 }
