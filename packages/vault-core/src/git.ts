@@ -16,10 +16,10 @@ export async function stageAndCommit(
   authorName: string
 ): Promise<string> {
   const git = simpleGit(vaultPath);
-  await git.addConfig("user.email", authorEmail, false, "local");
-  await git.addConfig("user.name", authorName, false, "local");
   await git.add(files);
-  await git.commit(message);
+  await git.commit(message, undefined, {
+    "--author": `${authorName} <${authorEmail}>`,
+  });
   return getHeadSha(vaultPath);
 }
 

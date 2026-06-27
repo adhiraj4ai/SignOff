@@ -7,8 +7,11 @@ export async function readWorkflows(vaultPath: string): Promise<VaultWorkflows> 
   try {
     const raw = await fs.readFile(filePath, "utf-8");
     return JSON.parse(raw) as VaultWorkflows;
-  } catch {
-    throw new Error("workflows.json not found");
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === "ENOENT") {
+      throw new Error(`workflows.json not found at ${filePath}`);
+    }
+    throw err;
   }
 }
 

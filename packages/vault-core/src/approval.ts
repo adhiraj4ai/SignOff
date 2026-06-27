@@ -25,8 +25,9 @@ export async function readApproval(
   try {
     const raw = await fs.readFile(filePath, "utf-8");
     return JSON.parse(raw) as ApprovalRecord;
-  } catch {
-    return null;
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === "ENOENT") return null;
+    throw err;
   }
 }
 

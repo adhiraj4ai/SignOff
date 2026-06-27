@@ -74,6 +74,14 @@ export class VaultManager {
 
     await initVaultRepo(vaultPath);
 
+    await stageAndCommit(
+      vaultPath,
+      [".chuckle/config.json", ".chuckle/workflows.json", "README.md"],
+      "chore: initialize vault scaffold",
+      "chuckle@local",
+      "Chuckle"
+    );
+
     return new VaultManager(vaultPath, config);
   }
 
@@ -137,7 +145,8 @@ export class VaultManager {
     );
 
     return {
-      vault_path: destFile,
+      vault_path: this._vaultPath,
+      document_path: destFile,
       commit_sha: sha,
     };
   }

@@ -57,6 +57,7 @@ export interface VaultsRegistry {
 
 export interface PublishResult {
   vault_path: string;
+  document_path: string;
   commit_sha: string;
 }
 

@@ -87,6 +87,25 @@ describe("VaultManager.publish", () => {
 
     await fs.rm(srcDir, { recursive: true, force: true });
   });
+
+  it("second publish produces resubmitted action and 2 history entries", async () => {
+    const vm = await VaultManager.create(tmpDir, "test-project", "acme");
+    const srcDir = await fs.mkdtemp(path.join(os.tmpdir(), "chuckle-src3-"));
+    const srcFile = path.join(srcDir, "spec.md");
+    await fs.writeFile(srcFile, "# Spec v1");
+
+    await vm.publish(srcFile, "user-auth", "spec", "dev@org.com", "Developer");
+    await fs.writeFile(srcFile, "# Spec v2");
+    const result2 = await vm.publish(srcFile, "user-auth", "spec", "dev@org.com", "Developer");
+
+    const { readApproval } = await import("../src/approval.js");
+    const record = await readApproval(tmpDir, "user-auth", "spec");
+    expect(record?.history).toHaveLength(2);
+    expect(record?.history[1].action).toBe("resubmitted");
+    expect(result2.commit_sha).toMatch(/^[0-9a-f]{40}$/);
+
+    await fs.rm(srcDir, { recursive: true, force: true });
+  });
 });
 
 describe("VaultManager registry", () => {
