@@ -24,9 +24,19 @@ const mockChuckle: ChuckleAPI = {
     read: vi.fn(),
     write: vi.fn(),
     getApproval: vi.fn(),
-    approve: vi.fn(),
-    reject: vi.fn(),
     isStale: vi.fn(),
+  },
+  review: {
+    action: vi.fn(),
+  },
+  comments: {
+    read: vi.fn(),
+    addThread: vi.fn(),
+    addReply: vi.fn(),
+    setResolved: vi.fn(),
+  },
+  project: {
+    readClaudeMd: vi.fn(),
   },
   workflows: {
     read: vi.fn(),

@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react'
-import type { ApprovalRecord, DocumentType, ReviewResult, WorkflowConfig } from '@shared/ipc-types'
+import type { ApprovalRecord, DocumentType, ReviewAction, ReviewerStatus, ReviewResult, WorkflowConfig } from '@shared/ipc-types'
 import { ReviewHistory } from './ReviewHistory'
-import { ApproveBar } from './ApproveBar'
 import { ReviewerSettings } from './ReviewerSettings'
 
 type Status = string
 
 function statusLabel(status: Status): string {
   if (status === 'pending') return 'Awaiting Approval'
+  if (status === 'in_review') return 'In Review'
   if (status === 'approved') return 'Approved'
   if (status === 'rejected') return 'Changes Requested'
   return 'Not Submitted'
@@ -15,6 +15,7 @@ function statusLabel(status: Status): string {
 
 function statusPill(status: Status): string {
   if (status === 'pending') return 'bg-wait-soft text-wait'
+  if (status === 'in_review') return 'bg-wait-soft text-wait'
   if (status === 'approved') return 'bg-ok-soft text-ok'
   if (status === 'rejected') return 'bg-stop-soft text-stop'
   return 'bg-app text-fg/45'
@@ -22,9 +23,25 @@ function statusPill(status: Status): string {
 
 function statusDot(status: Status): string {
   if (status === 'pending') return 'bg-wait'
+  if (status === 'in_review') return 'bg-wait'
   if (status === 'approved') return 'bg-ok'
   if (status === 'rejected') return 'bg-stop'
   return 'bg-ink/30'
+}
+
+function reviewerStatusLabel(status: ReviewerStatus): string {
+  if (status === 'pending') return 'Pending'
+  if (status === 'in_review') return 'In review'
+  if (status === 'approved') return 'Approved'
+  if (status === 'changes_requested') return 'Changes requested'
+  return 'Pending'
+}
+
+function reviewerStatusPill(status: ReviewerStatus): string {
+  if (status === 'approved') return 'bg-ok-soft text-ok'
+  if (status === 'changes_requested') return 'bg-stop-soft text-stop'
+  if (status === 'in_review') return 'bg-wait-soft text-wait'
+  return 'bg-app text-fg/45'
 }
 
 interface Props {
@@ -51,6 +68,7 @@ export function ReviewPanel({
   const [authorEmail, setAuthorEmail] = useState<string>('')
   const [isStale, setIsStale] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
+  const [busy, setBusy] = useState(false)
 
   useEffect(() => {
     let alive = true
@@ -69,7 +87,29 @@ export function ReviewPanel({
     return () => { alive = false }
   }, [vaultPath, feature, type, record])
 
-  const canApprove =
+  async function act(action: ReviewAction): Promise<void> {
+    setBusy(true)
+    try {
+      const r = await window.chuckle.review.action(vaultPath, feature, type, action)
+      onActionComplete(r)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  // Determine reviewer list: prefer required_approvers, else keys from record.reviewers
+  const reviewerList: string[] =
+    workflow?.required_approvers?.length
+      ? workflow.required_approvers
+      : record?.reviewers
+        ? Object.keys(record.reviewers)
+        : []
+
+  // Current user's reviewer status
+  const meStatus: ReviewerStatus = record?.reviewers?.[authorEmail]?.status ?? 'pending'
+
+  // Whether the current user is a member (can act)
+  const isMember =
     !workflow?.required_approvers?.length ||
     workflow.required_approvers.includes(authorEmail)
 
@@ -128,28 +168,80 @@ export function ReviewPanel({
               <p className="text-[11.5px] leading-relaxed text-fg/45">
                 Needs {workflow.min_approvals} approval
                 {workflow.min_approvals === 1 ? '' : 's'}
-                {workflow.required_approvers.length > 0 && (
-                  <>
-                    {' '}from{' '}
-                    <span className="text-fg/65">{workflow.required_approvers.join(', ')}</span>
-                  </>
-                )}
               </p>
             )}
           </div>
         )}
       </div>
 
-      {record !== undefined && (
-        <ApproveBar
-          vaultPath={vaultPath}
-          feature={feature}
-          type={type}
-          status={record?.status ?? 'not_found'}
-          canApprove={canApprove}
-          approvers={workflow?.required_approvers ?? []}
-          onActionComplete={onActionComplete}
-        />
+      {/* Reviewers list */}
+      {record !== undefined && reviewerList.length > 0 && (
+        <div className="px-5 py-4 border-b border-border">
+          <h3 className="text-[11px] font-semibold text-fg/45 mb-2.5">Reviewers</h3>
+          <ul className="space-y-2">
+            {reviewerList.map((email) => {
+              const rs: ReviewerStatus = record?.reviewers?.[email]?.status ?? 'pending'
+              return (
+                <li key={email} className="flex items-center justify-between gap-2">
+                  <span className="text-[12px] text-fg/75 truncate">{email}</span>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium whitespace-nowrap ${reviewerStatusPill(rs)}`}>
+                    {reviewerStatusLabel(rs)}
+                  </span>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      )}
+
+      {/* Current user's actions */}
+      {record !== undefined && record !== null && isMember && (
+        <div className="px-5 py-4 border-b border-border space-y-2">
+          {meStatus === 'pending' && (
+            <button
+              onClick={() => act('start_review')}
+              disabled={busy}
+              className="w-full px-4 py-2 rounded-lg bg-iris text-white text-[13px] font-semibold hover:brightness-95 active:brightness-90 disabled:opacity-50 transition"
+            >
+              Start review
+            </button>
+          )}
+          {meStatus === 'in_review' && (
+            <>
+              <button
+                onClick={() => act('approve')}
+                disabled={busy}
+                className="w-full px-4 py-2 rounded-lg bg-ok text-white text-[13px] font-semibold hover:brightness-95 active:brightness-90 disabled:opacity-50 transition"
+              >
+                Approve
+              </button>
+              <button
+                onClick={() => act('request_changes')}
+                disabled={busy}
+                className="w-full px-4 py-2 rounded-lg border border-border text-fg/80 text-[13px] font-medium hover:bg-app disabled:opacity-50 transition"
+              >
+                Request changes
+              </button>
+            </>
+          )}
+          {(meStatus === 'approved' || meStatus === 'changes_requested') && (
+            <>
+              <p className="text-[12px] text-fg/50">
+                Your decision:{' '}
+                <span className={meStatus === 'approved' ? 'text-ok' : 'text-stop'}>
+                  {meStatus === 'approved' ? 'Approved' : 'Changes requested'}
+                </span>
+              </p>
+              <button
+                onClick={() => act('reopen')}
+                disabled={busy}
+                className="w-full px-4 py-2 rounded-lg border border-border text-fg/80 text-[13px] font-medium hover:bg-app disabled:opacity-50 transition"
+              >
+                Reopen
+              </button>
+            </>
+          )}
+        </div>
       )}
 
       {record && record.history.length > 0 && <ReviewHistory history={record.history} />}

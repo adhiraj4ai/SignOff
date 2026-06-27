@@ -96,6 +96,7 @@ export function Sidebar({
   const counts: Record<StatusFilter, number> = {
     all: features.length,
     pending: features.filter((f) => featureStatuses(f).includes('pending')).length,
+    in_review: features.filter((f) => featureStatuses(f).includes('in_review')).length,
     rejected: features.filter((f) => featureStatuses(f).includes('rejected')).length,
     approved: features.filter((f) => featureStatuses(f).includes('approved')).length,
     not_found: 0,
