@@ -54,6 +54,18 @@ describe("migrateToIndex", () => {
     expect((await fs.stat(path.join(vaultPath, "specs", "orphan.md"))).isFile()).toBe(true);
   });
 
+  it("records unresolved without a manifest entry when neither a project doc nor a vault copy exists", async () => {
+    // approval exists, but no project doc and no vault copy
+    await writeApproval(vaultPath, {
+      document: "spec.md", feature: "ghost", type: "spec", workflow: "spec",
+      status: "approved", history: [{ action: "approved", by: "d@o.c", at: "t", message: null }],
+    });
+    const res = await migrateToIndex(vaultPath);
+    expect(res.unresolved).toContain("ghost/spec");
+    const m = await readManifest(vaultPath);
+    expect(getFeatureDoc(m, "ghost", "spec")).toBeNull();
+  });
+
   it("is a no-op on an already-migrated vault", async () => {
     await fs.writeFile(path.join(vaultPath, "index.json"), JSON.stringify({ version: 1, features: {} }) + "\n");
     await fs.rm(path.join(vaultPath, "specs"), { recursive: true, force: true });

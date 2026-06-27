@@ -100,8 +100,6 @@ async function dirHasMarkdown(dir: string): Promise<boolean> {
   }
 }
 
-const MIGRATE_DOC_TYPES: DocumentType[] = ["spec", "plan"];
-
 export async function migrateToIndex(
   vaultPath: string
 ): Promise<{ migrated: boolean; unresolved: string[] }> {
@@ -152,12 +150,12 @@ export async function migrateToIndex(
     const copyAbs = path.join(projectRoot, copyRel);
     if (await fs.access(copyAbs).then(() => true).catch(() => false)) {
       manifest = setFeatureDoc(manifest, feature, type, copyRel);
-      unresolved.push(`${feature}/${type}`);
     }
+    unresolved.push(`${feature}/${type}`);
   }
 
   // 3. Remove vault copies that were matched to project docs (not the fallbacks).
-  for (const type of MIGRATE_DOC_TYPES) {
+  for (const type of DOC_TYPES) {
     const dir = path.join(vaultPath, type === "spec" ? "specs" : "plans");
     let files: string[] = [];
     try {
