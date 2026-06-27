@@ -9,12 +9,14 @@ const mockChuckle: ChuckleAPI = {
     openExisting: vi.fn(),
     selectDirectory: vi.fn(),
     sync: vi.fn(),
+    getRemote: vi.fn(),
   },
   features: {
     list: vi.fn(),
   },
   document: {
     read: vi.fn(),
+    write: vi.fn(),
     getApproval: vi.fn(),
     approve: vi.fn(),
     reject: vi.fn(),

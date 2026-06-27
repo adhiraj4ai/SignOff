@@ -8,29 +8,50 @@ interface Props {
 const actionLabel: Record<ApprovalHistoryEntry['action'], string> = {
   submitted: 'Submitted',
   resubmitted: 'Resubmitted',
-  approved: '✅ Approved',
-  rejected: '❌ Changes requested',
+  approved: 'Approved',
+  rejected: 'Changes requested',
+}
+
+function dotColor(action: ApprovalHistoryEntry['action']): string {
+  if (action === 'approved') return 'bg-ok'
+  if (action === 'rejected') return 'bg-stop'
+  return 'bg-ink/30'
+}
+
+function formatDate(iso: string): string {
+  const d = new Date(iso)
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
 export function ReviewHistory({ history }: Props): React.ReactElement {
   if (history.length === 0) return <></>
   return (
-    <div className="border-t border-gray-200 px-6 py-4">
-      <h3 className="text-xs font-semibold text-gray-400 uppercase mb-3">Review History</h3>
-      <ul className="space-y-2">
+    <section className="px-5 py-4">
+      <h3 className="text-[10.5px] font-semibold tracking-[0.09em] uppercase text-ink/40 mb-3">
+        Review history
+      </h3>
+      <ol className="relative space-y-3">
         {history.map((entry, i) => (
-          <li key={i} className="text-sm">
-            <span className="font-medium">{actionLabel[entry.action]}</span>
-            <span className="text-gray-400"> by {entry.by}</span>
-            <span className="text-gray-400"> — {new Date(entry.at).toLocaleDateString()}</span>
+          <li key={i} className="relative pl-5">
+            <span
+              className={`absolute left-0 top-1.5 w-2 h-2 rounded-full ring-4 ring-white ${dotColor(entry.action)}`}
+            />
+            {i < history.length - 1 && (
+              <span className="absolute left-[3.5px] top-3.5 bottom-[-12px] w-px bg-line" />
+            )}
+            <div className="text-[13px] leading-tight">
+              <span className="font-medium text-ink">{actionLabel[entry.action]}</span>
+              <span className="text-ink/45"> · {entry.by}</span>
+              <span className="text-ink/35"> · {formatDate(entry.at)}</span>
+            </div>
             {entry.message && (
-              <p className="text-gray-500 text-xs mt-0.5 pl-2 border-l-2 border-gray-200">
+              <p className="mt-1.5 text-[12.5px] leading-relaxed text-ink/60 bg-mist border border-line rounded-md px-2.5 py-1.5">
                 {entry.message}
               </p>
             )}
           </li>
         ))}
-      </ul>
-    </div>
+      </ol>
+    </section>
   )
 }

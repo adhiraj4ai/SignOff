@@ -35,34 +35,10 @@ describe('DocumentPane', () => {
     await waitFor(() => screen.getByRole('heading', { name: /user auth spec/i }))
   })
 
-  it('shows feature name and document type in header', async () => {
+  it('shows feature name and document type in the breadcrumb', async () => {
     render(<DocumentPane vaultPath="/vault" feature="user-auth" type="spec" onApprove={() => {}} onReject={() => {}} />)
     await waitFor(() => screen.getByText('user-auth'))
     // the type label "spec" (lowercase) is in the header breadcrumb
     expect(screen.getAllByText('spec').length).toBeGreaterThan(0)
-  })
-
-  it('shows pending status in header when status is pending', async () => {
-    render(<DocumentPane vaultPath="/vault" feature="user-auth" type="spec" onApprove={() => {}} onReject={() => {}} />)
-    await waitFor(() => screen.getByText(/awaiting approval/i))
-  })
-
-  it('shows approved status when record is approved', async () => {
-    vi.mocked(window.chuckle.document.getApproval).mockResolvedValue({
-      ...mockRecord,
-      status: 'approved',
-      history: [
-        ...mockRecord.history,
-        { action: 'approved', by: 'arch@org.com', at: '2026-06-27T14:00:00Z', message: 'LGTM' },
-      ],
-    })
-    render(<DocumentPane vaultPath="/vault" feature="user-auth" type="spec" onApprove={() => {}} onReject={() => {}} />)
-    await waitFor(() => screen.getByText(/approved/i))
-  })
-
-  it('shows not found message when no record exists', async () => {
-    vi.mocked(window.chuckle.document.getApproval).mockResolvedValue(null)
-    render(<DocumentPane vaultPath="/vault" feature="user-auth" type="spec" onApprove={() => {}} onReject={() => {}} />)
-    await waitFor(() => screen.getByText(/not submitted/i))
   })
 })

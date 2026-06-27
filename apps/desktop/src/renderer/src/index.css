@@ -1,3 +1,154 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    @apply bg-mist text-ink font-sans antialiased;
+  }
+  /* Quiet, consistent scrollbars in both rail and reading pane */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-black/15 rounded-full border-2 border-solid border-transparent bg-clip-content;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-black/25;
+  }
+}
+
+/* Markdown reading styles. Tailwind's preflight removes default element
+   styling, so the rendered document needs its own typographic scale. */
+@layer components {
+  .doc {
+    @apply font-serif text-[15.5px] leading-[1.78] text-ink/85;
+  }
+  .doc > :first-child {
+    @apply mt-0;
+  }
+  .doc h1 {
+    @apply font-sans font-semibold text-[26px] leading-tight tracking-[-0.01em] text-ink mt-0 mb-4;
+  }
+  .doc h2 {
+    @apply font-sans font-semibold text-[19px] tracking-[-0.01em] text-ink mt-9 mb-2.5 pb-2 border-b border-line;
+  }
+  .doc h3 {
+    @apply font-sans font-semibold text-[15px] text-ink mt-7 mb-1.5;
+  }
+  .doc p {
+    @apply my-3.5;
+  }
+  .doc ul {
+    @apply my-3.5 pl-5 list-disc marker:text-ink/30;
+  }
+  .doc ol {
+    @apply my-3.5 pl-5 list-decimal marker:text-ink/40;
+  }
+  .doc li {
+    @apply my-1.5;
+  }
+  .doc li > ul,
+  .doc li > ol {
+    @apply my-1.5;
+  }
+  .doc a {
+    @apply text-iris underline underline-offset-2 decoration-iris/30 hover:decoration-iris;
+  }
+  .doc strong {
+    @apply font-semibold text-ink;
+  }
+  .doc code {
+    @apply font-mono text-[0.85em] bg-mist text-ink px-1.5 py-0.5 rounded border border-line;
+  }
+  .doc pre {
+    @apply font-mono text-[12.5px] leading-relaxed bg-ink text-white/90 rounded-xl p-4 my-5 overflow-x-auto;
+  }
+  .doc pre code {
+    @apply bg-transparent border-0 p-0 text-inherit;
+  }
+  .doc blockquote {
+    @apply border-l-2 border-iris/40 pl-4 my-5 text-ink/55 not-italic;
+  }
+  .doc hr {
+    @apply my-7 border-line;
+  }
+  .doc table {
+    @apply my-5 w-full text-[13.5px] font-sans border border-line rounded-lg border-separate border-spacing-0;
+  }
+  .doc th,
+  .doc td {
+    @apply px-3 py-2 text-left border-b border-line;
+  }
+  .doc th {
+    @apply bg-mist font-semibold text-ink/70;
+  }
+  .doc tr:last-child td {
+    @apply border-b-0;
+  }
+}
+
+/* Syntax highlighting theme for rehype-highlight (.hljs token classes),
+   tuned for the dark code blocks in .doc pre. */
+.doc .hljs {
+  color: rgba(255, 255, 255, 0.88);
+}
+.doc .hljs-comment,
+.doc .hljs-quote {
+  color: #7b8190;
+  font-style: italic;
+}
+.doc .hljs-keyword,
+.doc .hljs-selector-tag,
+.doc .hljs-literal,
+.doc .hljs-meta .hljs-keyword {
+  color: #c4b5fd; /* iris-tinted */
+}
+.doc .hljs-string,
+.doc .hljs-regexp,
+.doc .hljs-addition {
+  color: #86e1b0; /* green */
+}
+.doc .hljs-number,
+.doc .hljs-symbol,
+.doc .hljs-literal.hljs-bool {
+  color: #f0b366; /* amber */
+}
+.doc .hljs-title,
+.doc .hljs-title.function_,
+.doc .hljs-section,
+.doc .hljs-name {
+  color: #8ab4ff; /* blue */
+}
+.doc .hljs-attr,
+.doc .hljs-attribute,
+.doc .hljs-variable,
+.doc .hljs-template-variable,
+.doc .hljs-class .hljs-title,
+.doc .hljs-type {
+  color: #7fd6e1; /* cyan */
+}
+.doc .hljs-built_in,
+.doc .hljs-builtin-name,
+.doc .hljs-property {
+  color: #f2a7b6; /* soft red */
+}
+.doc .hljs-meta,
+.doc .hljs-comment.hljs-doctag {
+  color: #8b93a3;
+}
+.doc .hljs-deletion {
+  color: #f2a7b6;
+}
+.doc .hljs-emphasis {
+  font-style: italic;
+}
+.doc .hljs-strong {
+  font-weight: 600;
+}

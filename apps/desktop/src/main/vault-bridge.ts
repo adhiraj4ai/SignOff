@@ -93,6 +93,19 @@ export async function getDocumentApproval(
   return readApproval(vaultPath, feature, type)
 }
 
+/** Overwrite a document in the vault working tree and commit the edit. */
+export async function writeDocument(
+  vaultPath: string,
+  feature: string,
+  type: DocumentType,
+  content: string
+): Promise<void> {
+  const rel = path.join('features', feature, `${type}.md`)
+  await fs.writeFile(path.join(vaultPath, rel), content)
+  const { name, email } = await resolveVaultAuthor(vaultPath)
+  await stageAndCommit(vaultPath, [rel], `docs(${feature}): edit ${type}`, email, name)
+}
+
 export async function approveDocument(
   vaultPath: string,
   feature: string,
@@ -137,4 +150,15 @@ export async function rejectDocument(
 
 export async function readVaultWorkflows(vaultPath: string): Promise<VaultWorkflows> {
   return readWorkflows(vaultPath)
+}
+
+/** The vault's `origin` remote URL, or null if none is configured. */
+export async function getVaultRemote(vaultPath: string): Promise<string | null> {
+  try {
+    const remotes = await simpleGit(vaultPath).getRemotes(true)
+    const origin = remotes.find((r) => r.name === 'origin') ?? remotes[0]
+    return origin?.refs.fetch || origin?.refs.push || null
+  } catch {
+    return null
+  }
 }

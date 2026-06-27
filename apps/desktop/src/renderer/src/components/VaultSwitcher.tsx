@@ -17,14 +17,14 @@ export function VaultSwitcher({ onVaultSelected }: Props): React.ReactElement {
     window.chuckle.vault.list().then(setVaults)
   }, [])
 
-  async function handleOpenVault() {
+  async function handleOpenVault(): Promise<void> {
     const dir = await window.chuckle.vault.selectDirectory()
     if (!dir) return
     const config = await window.chuckle.vault.openExisting(dir)
     onVaultSelected(dir, config.name)
   }
 
-  async function handleCreateVault() {
+  async function handleCreateVault(): Promise<void> {
     const dir = await window.chuckle.vault.selectDirectory()
     if (!dir) return
     await window.chuckle.vault.create(dir, newName, newOrg)
@@ -32,78 +32,110 @@ export function VaultSwitcher({ onVaultSelected }: Props): React.ReactElement {
     setModal('none')
   }
 
-  if (vaults === null) return <div className="p-8 text-gray-500">Loading…</div>
+  if (vaults === null) {
+    return <div className="min-h-screen grid place-items-center text-sm text-ink/40">Loading…</div>
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-8">
-      <h1 className="text-3xl font-bold mb-2">Chuckle</h1>
-      <p className="text-gray-500 mb-8">Document review &amp; approval</p>
-
-      {vaults.length === 0 && (
-        <p className="text-gray-400 mb-6">No vaults registered yet.</p>
-      )}
-
-      {vaults.length > 0 && (
-        <div className="w-full max-w-md mb-6">
-          <h2 className="text-sm font-semibold text-gray-400 uppercase mb-2">Vaults</h2>
-          <ul className="bg-white border border-gray-200 rounded-lg divide-y divide-gray-100">
-            {vaults.map(v => (
-              <li key={v.path}>
-                <button
-                  onClick={() => onVaultSelected(v.path, v.name)}
-                  className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors"
-                >
-                  <span className="font-medium">{v.name}</span>
-                  <span className="block text-xs text-gray-400">{v.path}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
+    <div className="min-h-screen bg-mist flex flex-col items-center justify-center p-8">
+      <div className="w-full max-w-md">
+        <div className="flex items-center gap-3 mb-1">
+          <span className="grid place-items-center w-9 h-9 rounded-xl bg-ink text-white text-lg font-bold">
+            C
+          </span>
+          <h1 className="text-[28px] font-semibold tracking-[-0.02em] text-ink">Chuckle</h1>
         </div>
-      )}
+        <p className="text-ink/50 text-[14px] mb-8 pl-0.5">
+          Review and approve specs &amp; plans before the code gets written.
+        </p>
 
-      <div className="flex gap-3">
-        <button
-          onClick={() => setModal('new-vault')}
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-        >
-          New Vault
-        </button>
-        <button
-          onClick={handleOpenVault}
-          className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50 transition-colors"
-        >
-          Open Vault
-        </button>
+        {vaults.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-line bg-white/60 px-5 py-8 text-center mb-5">
+            <p className="text-[13.5px] text-ink/55">
+              No vaults yet. Start a new one, or open an existing vault repo.
+            </p>
+          </div>
+        ) : (
+          <div className="mb-5">
+            <h2 className="text-[10.5px] font-semibold tracking-[0.09em] uppercase text-ink/40 mb-2">
+              Recent vaults
+            </h2>
+            <ul className="bg-white border border-line rounded-xl shadow-panel overflow-hidden">
+              {vaults.map((v) => (
+                <li key={v.path} className="border-b border-line last:border-b-0">
+                  <button
+                    onClick={() => onVaultSelected(v.path, v.name)}
+                    className="group w-full text-left px-4 py-3 hover:bg-mist transition-colors flex items-center gap-3"
+                  >
+                    <span className="grid place-items-center w-8 h-8 rounded-lg bg-iris-soft text-iris text-[13px] font-semibold shrink-0">
+                      {v.name.slice(0, 1).toUpperCase()}
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block font-medium text-[14px] text-ink truncate">{v.name}</span>
+                      <span className="block text-[11.5px] text-ink/40 font-mono truncate">{v.path}</span>
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <div className="flex gap-2.5">
+          <button
+            onClick={() => setModal('new-vault')}
+            className="flex-1 px-4 py-2.5 rounded-lg bg-iris text-white text-[13px] font-semibold hover:bg-iris-ink active:brightness-95 transition"
+          >
+            New Vault
+          </button>
+          <button
+            onClick={handleOpenVault}
+            className="flex-1 px-4 py-2.5 rounded-lg border border-line bg-white text-ink/80 text-[13px] font-medium hover:bg-mist transition"
+          >
+            Open Vault
+          </button>
+        </div>
       </div>
 
       {modal === 'new-vault' && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
-          <div className="bg-white rounded-lg p-6 w-80 shadow-xl">
-            <h2 className="font-semibold text-lg mb-4">New Vault</h2>
+        <div
+          className="fixed inset-0 bg-ink/40 backdrop-blur-sm flex items-center justify-center p-8"
+          onClick={() => setModal('none')}
+        >
+          <div
+            className="bg-white rounded-2xl p-6 w-[22rem] shadow-panel"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="font-semibold text-[17px] text-ink mb-1">New vault</h2>
+            <p className="text-[12.5px] text-ink/50 mb-5">
+              You&apos;ll pick a folder next — Chuckle initializes a git repo there.
+            </p>
+            <label className="block text-[12px] font-medium text-ink/60 mb-1">Vault name</label>
             <input
-              className="w-full border border-gray-300 rounded px-3 py-2 mb-3 text-sm"
+              className="w-full rounded-lg border border-line px-3 py-2 mb-3.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-iris/30 focus:border-iris/50"
               placeholder="Vault name"
               value={newName}
-              onChange={e => setNewName(e.target.value)}
+              onChange={(e) => setNewName(e.target.value)}
+              autoFocus
             />
+            <label className="block text-[12px] font-medium text-ink/60 mb-1">Organization</label>
             <input
-              className="w-full border border-gray-300 rounded px-3 py-2 mb-4 text-sm"
+              className="w-full rounded-lg border border-line px-3 py-2 mb-5 text-[13px] focus:outline-none focus:ring-2 focus:ring-iris/30 focus:border-iris/50"
               placeholder="Org"
               value={newOrg}
-              onChange={e => setNewOrg(e.target.value)}
+              onChange={(e) => setNewOrg(e.target.value)}
             />
             <div className="flex gap-2 justify-end">
               <button
                 onClick={() => setModal('none')}
-                className="px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-50"
+                className="px-4 py-2 text-[13px] font-medium rounded-lg border border-line text-ink/70 hover:bg-mist transition"
               >
                 Cancel
               </button>
               <button
                 onClick={handleCreateVault}
                 disabled={!newName.trim() || !newOrg.trim()}
-                className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                className="px-4 py-2 text-[13px] font-semibold rounded-lg bg-iris text-white hover:bg-iris-ink disabled:opacity-50 transition"
               >
                 Create
               </button>

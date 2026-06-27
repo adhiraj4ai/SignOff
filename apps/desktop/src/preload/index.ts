@@ -8,6 +8,7 @@ const api: ChuckleAPI = {
     openExisting: (path) => ipcRenderer.invoke('vault:open-existing', { path }),
     selectDirectory: () => ipcRenderer.invoke('vault:select-directory'),
     sync: (vaultPath) => ipcRenderer.invoke('vault:sync', { vaultPath }),
+    getRemote: (vaultPath) => ipcRenderer.invoke('vault:get-remote', { vaultPath }),
   },
   features: {
     list: (vaultPath) => ipcRenderer.invoke('features:list', { vaultPath }),
@@ -15,6 +16,8 @@ const api: ChuckleAPI = {
   document: {
     read: (vaultPath, feature, type) =>
       ipcRenderer.invoke('document:read', { vaultPath, feature, type }),
+    write: (vaultPath, feature, type, content) =>
+      ipcRenderer.invoke('document:write', { vaultPath, feature, type, content }),
     getApproval: (vaultPath, feature, type) =>
       ipcRenderer.invoke('document:get-approval', { vaultPath, feature, type }),
     approve: (vaultPath, feature, type, message) =>

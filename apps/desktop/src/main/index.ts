@@ -7,10 +7,12 @@ import {
   syncVault,
   listFeatures,
   readDocument,
+  writeDocument,
   getDocumentApproval,
   approveDocument,
   rejectDocument,
   readVaultWorkflows,
+  getVaultRemote,
 } from './vault-bridge.js'
 
 function createWindow(): void {
@@ -18,7 +20,7 @@ function createWindow(): void {
     width: 1200,
     height: 800,
     webPreferences: {
-      preload: join(__dirname, '../preload/index.js'),
+      preload: join(__dirname, '../preload/index.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
     },
@@ -39,8 +41,12 @@ function registerIpcHandlers(): void {
     return result.canceled ? null : result.filePaths[0] ?? null
   })
   ipcMain.handle('vault:sync', (_e, { vaultPath }) => syncVault(vaultPath))
+  ipcMain.handle('vault:get-remote', (_e, { vaultPath }) => getVaultRemote(vaultPath))
   ipcMain.handle('features:list', (_e, { vaultPath }) => listFeatures(vaultPath))
   ipcMain.handle('document:read', (_e, { vaultPath, feature, type }) => readDocument(vaultPath, feature, type))
+  ipcMain.handle('document:write', (_e, { vaultPath, feature, type, content }) =>
+    writeDocument(vaultPath, feature, type, content)
+  )
   ipcMain.handle('document:get-approval', (_e, { vaultPath, feature, type }) => getDocumentApproval(vaultPath, feature, type))
   ipcMain.handle('document:approve', (_e, { vaultPath, feature, type, message }) => approveDocument(vaultPath, feature, type, message))
   ipcMain.handle('document:reject', (_e, { vaultPath, feature, type, message }) => rejectDocument(vaultPath, feature, type, message))
