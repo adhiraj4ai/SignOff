@@ -1,4 +1,4 @@
-import simpleGit from "simple-git";
+import { simpleGit } from "simple-git";
 
 export async function initVaultRepo(vaultPath: string): Promise<void> {
   const git = simpleGit(vaultPath);
