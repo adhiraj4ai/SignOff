@@ -43,8 +43,10 @@ export async function writeApproval(
 const actionToStatus: Record<ApprovalHistoryEntry["action"], ApprovalStatus> = {
   submitted: "pending",
   resubmitted: "pending",
+  started_review: "in_review",
   approved: "approved",
-  rejected: "rejected",
+  requested_changes: "rejected",
+  reopened: "in_review",
 };
 
 export function appendHistory(

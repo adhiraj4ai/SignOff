@@ -166,6 +166,7 @@ export class VaultManager {
           type,
           workflow: type,
           status: "pending",
+          reviewers: {},
           history: [{ action: "submitted", by: authorEmail, at: now, message: null, content_hash: contentHash }],
         };
 

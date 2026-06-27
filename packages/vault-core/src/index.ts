@@ -5,6 +5,8 @@ export type {
   ApprovalStatus,
   ApprovalHistoryEntry,
   ApprovalRecord,
+  ReviewerStatus,
+  ReviewerState,
   WorkflowConfig,
   VaultWorkflows,
   VaultConfig,
@@ -16,6 +18,10 @@ export type {
 
 // Feature inference
 export { inferFeatureName } from "./feature.js";
+
+// Reviewer workflow
+export type { ReviewAction } from "./review.js";
+export { applyReviewerAction, deriveStatus } from "./review.js";
 
 // Vault layout (docs-as-vault: specs/ plans/ approvals/)
 export {

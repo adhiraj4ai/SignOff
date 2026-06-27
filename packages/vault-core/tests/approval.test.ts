@@ -28,6 +28,7 @@ const baseRecord: ApprovalRecord = {
   type: "spec",
   workflow: "spec",
   status: "pending",
+  reviewers: {},
   history: [
     { action: "submitted", by: "dev@org.com", at: "2026-06-27T10:00:00Z", message: null },
   ],
@@ -83,8 +84,8 @@ describe("appendHistory", () => {
     expect(updated.status).toBe("approved");
   });
 
-  it("sets status to rejected on rejected action", () => {
-    const entry = { action: "rejected" as const, by: "arch@org.com", at: "2026-06-27T12:00:00Z", message: "Needs work" };
+  it("sets status to rejected on requested_changes action", () => {
+    const entry = { action: "requested_changes" as const, by: "arch@org.com", at: "2026-06-27T12:00:00Z", message: "Needs work" };
     const updated = appendHistory(baseRecord, entry);
     expect(updated.status).toBe("rejected");
   });

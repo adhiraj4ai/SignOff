@@ -2,15 +2,26 @@ export type DocumentType = "spec" | "plan";
 
 export type ApprovalAction =
   | "submitted"
+  | "resubmitted"
+  | "started_review"
   | "approved"
-  | "rejected"
-  | "resubmitted";
+  | "requested_changes"
+  | "reopened";
 
 export type ApprovalStatus =
   | "pending"
+  | "in_review"
   | "approved"
   | "rejected"
   | "not_found";
+
+export type ReviewerStatus = "pending" | "in_review" | "approved" | "changes_requested";
+
+export interface ReviewerState {
+  status: ReviewerStatus;
+  at: string;              // ISO 8601 UTC
+  content_hash?: string;   // doc hash at approve/request_changes time
+}
 
 export interface ApprovalHistoryEntry {
   action: ApprovalAction;
@@ -26,6 +37,7 @@ export interface ApprovalRecord {
   type: DocumentType;
   workflow: string;           // workflow key used, e.g. "spec"
   status: ApprovalStatus;
+  reviewers: Record<string, ReviewerState>;
   history: ApprovalHistoryEntry[];
 }
 
