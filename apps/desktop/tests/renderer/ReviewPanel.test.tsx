@@ -12,6 +12,8 @@ beforeEach(() => {
   vi.mocked(window.chuckle.vault.author).mockResolvedValue({ name: 'Me', email: 'me@o.c' })
   vi.mocked(window.chuckle.document.isStale).mockResolvedValue(false)
   vi.mocked(window.chuckle.review.action).mockResolvedValue({ pushed: false })
+  vi.mocked(window.chuckle.vault.getRemote).mockResolvedValue(null)
+  vi.mocked(window.chuckle.project.readClaudeMd).mockResolvedValue(null)
 })
 
 it('shows Start review when the current reviewer is pending', async () => {
@@ -72,5 +74,41 @@ describe('ReviewPanel status display', () => {
     )
     expect(screen.getByText(/review history/i)).toBeInTheDocument()
     expect(screen.getAllByText(/submitted/i).length).toBeGreaterThan(0)
+  })
+})
+
+describe('Vault access section', () => {
+  it('shows the vault clone URL for reviewers when a remote is set', async () => {
+    vi.mocked(window.chuckle.vault.getRemote).mockResolvedValue('git@github.com:org/proj-signoff.git')
+    render(
+      <ReviewPanel vaultPath="/v" feature="user-auth" type="spec" record={record({})} workflow={workflow} onActionComplete={() => {}} />
+    )
+    await waitFor(() => screen.getByText('git@github.com:org/proj-signoff.git'))
+    expect(screen.getByText(/reviewers clone this repo/i)).toBeInTheDocument()
+  })
+
+  it('shows a configure hint when no remote is set', async () => {
+    vi.mocked(window.chuckle.vault.getRemote).mockResolvedValue(null)
+    render(
+      <ReviewPanel vaultPath="/v" feature="user-auth" type="spec" record={record({})} workflow={workflow} onActionComplete={() => {}} />
+    )
+    await waitFor(() => screen.getByText(/configure a remote/i))
+  })
+
+  it('shows Project CLAUDE.md detected when readClaudeMd returns content', async () => {
+    vi.mocked(window.chuckle.project.readClaudeMd).mockResolvedValue('# Project instructions')
+    render(
+      <ReviewPanel vaultPath="/v" feature="user-auth" type="spec" record={record({})} workflow={workflow} onActionComplete={() => {}} />
+    )
+    await waitFor(() => screen.getByText(/project claude\.md detected/i))
+  })
+
+  it('does not show CLAUDE.md indicator when readClaudeMd returns null', async () => {
+    vi.mocked(window.chuckle.project.readClaudeMd).mockResolvedValue(null)
+    render(
+      <ReviewPanel vaultPath="/v" feature="user-auth" type="spec" record={record({})} workflow={workflow} onActionComplete={() => {}} />
+    )
+    await waitFor(() => screen.getByText(/awaiting approval/i))
+    expect(screen.queryByText(/project claude\.md detected/i)).not.toBeInTheDocument()
   })
 })

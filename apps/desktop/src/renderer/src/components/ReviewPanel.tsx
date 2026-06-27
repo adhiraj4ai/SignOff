@@ -69,6 +69,9 @@ export function ReviewPanel({
   const [isStale, setIsStale] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [vaultRemote, setVaultRemote] = useState<string | null | undefined>(undefined)
+  const [hasClaudeMd, setHasClaudeMd] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     let alive = true
@@ -86,6 +89,25 @@ export function ReviewPanel({
     })
     return () => { alive = false }
   }, [vaultPath, feature, type, record])
+
+  useEffect(() => {
+    let alive = true
+    window.chuckle.vault.getRemote(vaultPath).then((r) => {
+      if (alive) setVaultRemote(r)
+    })
+    window.chuckle.project.readClaudeMd(vaultPath).then((c) => {
+      if (alive) setHasClaudeMd(c !== null)
+    })
+    return () => { alive = false }
+  }, [vaultPath])
+
+  function copyRemote(): void {
+    if (!vaultRemote) return
+    navigator.clipboard.writeText(vaultRemote).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    })
+  }
 
   async function act(action: ReviewAction): Promise<void> {
     setBusy(true)
@@ -245,6 +267,39 @@ export function ReviewPanel({
       )}
 
       {record && record.history.length > 0 && <ReviewHistory history={record.history} />}
+
+      {/* Vault access */}
+      <div className="px-5 py-4 border-t border-border mt-auto">
+        <h3 className="text-[11px] font-semibold text-fg/45 mb-2">Vault access</h3>
+        {vaultRemote ? (
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <code className="text-[11px] text-fg/80 font-mono bg-app px-1.5 py-0.5 rounded truncate flex-1 min-w-0 block">
+                {vaultRemote}
+              </code>
+              <button
+                onClick={copyRemote}
+                title="Copy clone URL"
+                className="shrink-0 text-[11px] text-fg/40 hover:text-iris transition px-1.5 py-0.5 rounded hover:bg-iris/10"
+              >
+                {copied ? 'Copied' : 'Copy'}
+              </button>
+            </div>
+            <p className="text-[11px] text-fg/45 leading-relaxed">
+              Reviewers clone this repo and are recognized by their git email.
+            </p>
+          </div>
+        ) : vaultRemote === null ? (
+          <p className="text-[11px] text-fg/40 leading-relaxed">
+            Configure a remote in source control so reviewers can access the vault.
+          </p>
+        ) : null}
+        {hasClaudeMd && (
+          <p className="mt-2 text-[11px] text-ok font-medium">
+            Project CLAUDE.md detected
+          </p>
+        )}
+      </div>
     </aside>
   )
 }
