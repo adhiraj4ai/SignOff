@@ -17,7 +17,7 @@ import {
   type ApprovalRecord,
   type DocumentType,
 } from '@chuckle/vault-core'
-import type { FeatureEntry } from '../shared/ipc-types.js'
+import type { FeatureEntry, GitCommit, GitStatus } from '../shared/ipc-types.js'
 
 async function resolveVaultAuthor(vaultPath: string): Promise<{ name: string; email: string }> {
   const git = simpleGit(vaultPath)
@@ -104,6 +104,7 @@ export async function writeDocument(
   await fs.writeFile(path.join(vaultPath, rel), content)
   const { name, email } = await resolveVaultAuthor(vaultPath)
   await stageAndCommit(vaultPath, [rel], `docs(${feature}): edit ${type}`, email, name)
+  try { await pushToRemote(vaultPath) } catch { /* no remote configured — ignore */ }
 }
 
 export async function approveDocument(
@@ -150,6 +151,43 @@ export async function rejectDocument(
 
 export async function readVaultWorkflows(vaultPath: string): Promise<VaultWorkflows> {
   return readWorkflows(vaultPath)
+}
+
+/** Recent commits in the vault repo, newest first. */
+export async function getVaultLog(vaultPath: string): Promise<GitCommit[]> {
+  try {
+    const log = await simpleGit(vaultPath).log({ maxCount: 80 })
+    return log.all.map((c) => ({
+      hash: c.hash,
+      short: c.hash.slice(0, 7),
+      message: c.message,
+      author: c.author_name,
+      date: c.date,
+      refs: c.refs,
+    }))
+  } catch {
+    return []
+  }
+}
+
+/** Branch + ahead/behind relative to the tracked remote branch. */
+export async function getVaultStatus(vaultPath: string): Promise<GitStatus> {
+  try {
+    const s = await simpleGit(vaultPath).status()
+    return { branch: s.current, tracking: s.tracking, ahead: s.ahead, behind: s.behind }
+  } catch {
+    return { branch: null, tracking: null, ahead: 0, behind: 0 }
+  }
+}
+
+/** Push to the remote, reporting success/failure for the UI. */
+export async function pushVault(vaultPath: string): Promise<{ ok: boolean; error?: string }> {
+  try {
+    await pushToRemote(vaultPath)
+    return { ok: true }
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) }
+  }
 }
 
 /** The vault's `origin` remote URL, or null if none is configured. */

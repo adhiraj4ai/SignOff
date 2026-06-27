@@ -9,6 +9,9 @@ const api: ChuckleAPI = {
     selectDirectory: () => ipcRenderer.invoke('vault:select-directory'),
     sync: (vaultPath) => ipcRenderer.invoke('vault:sync', { vaultPath }),
     getRemote: (vaultPath) => ipcRenderer.invoke('vault:get-remote', { vaultPath }),
+    log: (vaultPath) => ipcRenderer.invoke('vault:log', { vaultPath }),
+    status: (vaultPath) => ipcRenderer.invoke('vault:status', { vaultPath }),
+    push: (vaultPath) => ipcRenderer.invoke('vault:push', { vaultPath }),
   },
   features: {
     list: (vaultPath) => ipcRenderer.invoke('features:list', { vaultPath }),

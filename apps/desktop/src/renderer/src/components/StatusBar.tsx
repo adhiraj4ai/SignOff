@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react'
 interface Props {
   vaultPath: string
   vaultName: string
+  onOpenSourceControl: () => void
 }
 
 interface Repo {
@@ -25,7 +26,7 @@ function GitHubMark(): React.ReactElement {
   )
 }
 
-export function StatusBar({ vaultPath, vaultName }: Props): React.ReactElement {
+export function StatusBar({ vaultPath, vaultName, onOpenSourceControl }: Props): React.ReactElement {
   const [remote, setRemote] = useState<string | null | undefined>(undefined)
 
   useEffect(() => {
@@ -41,14 +42,18 @@ export function StatusBar({ vaultPath, vaultName }: Props): React.ReactElement {
   const repo = parseRepo(remote ?? null)
 
   return (
-    <footer className="h-7 shrink-0 bg-ink border-t border-white/[0.08] flex items-center gap-3 px-3 text-[11px] font-mono text-white/55">
-      <span className="flex items-center gap-1.5" title={remote ?? 'No git remote configured'}>
+    <footer className="h-7 shrink-0 bg-ink border-t border-white/[0.08] flex items-center gap-3 px-2 text-[11px] font-mono text-white/55">
+      <button
+        onClick={onOpenSourceControl}
+        title="Open source control"
+        className="flex items-center gap-1.5 px-1.5 py-0.5 rounded hover:bg-white/[0.08] transition-colors"
+      >
         {repo.isGitHub ? <GitHubMark /> : <span className="inline-block w-3.5 h-3.5" />}
         <span className={repo.isGitHub ? 'text-white/75' : 'text-white/40'}>
           {remote === undefined ? '…' : repo.label}
         </span>
-      </span>
-      <span className="ml-auto text-white/35">{vaultName}</span>
+      </button>
+      <span className="ml-auto text-white/35 pr-1">{vaultName}</span>
     </footer>
   )
 }

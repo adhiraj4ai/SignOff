@@ -26,8 +26,25 @@ export interface FeatureEntry {
   plan: ApprovalStatus | 'not_found'
 }
 
+export interface GitCommit {
+  hash: string
+  short: string
+  message: string
+  author: string
+  date: string
+  refs: string
+}
+
+export interface GitStatus {
+  branch: string | null
+  tracking: string | null
+  ahead: number
+  behind: number
+}
+
 export type IpcChannels =
   | 'vault:list' | 'vault:create' | 'vault:open-existing' | 'vault:select-directory' | 'vault:sync' | 'vault:get-remote'
+  | 'vault:log' | 'vault:status' | 'vault:push'
   | 'features:list'
   | 'document:read' | 'document:write' | 'document:get-approval' | 'document:approve' | 'document:reject'
   | 'workflows:read'
@@ -40,6 +57,9 @@ export interface ChuckleAPI {
     selectDirectory(): Promise<string | null>
     sync(vaultPath: string): Promise<void>
     getRemote(vaultPath: string): Promise<string | null>
+    log(vaultPath: string): Promise<GitCommit[]>
+    status(vaultPath: string): Promise<GitStatus>
+    push(vaultPath: string): Promise<{ ok: boolean; error?: string }>
   }
   features: {
     list(vaultPath: string): Promise<FeatureEntry[]>

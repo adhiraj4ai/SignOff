@@ -10,6 +10,9 @@ const mockChuckle: ChuckleAPI = {
     selectDirectory: vi.fn(),
     sync: vi.fn(),
     getRemote: vi.fn(),
+    log: vi.fn(),
+    status: vi.fn(),
+    push: vi.fn(),
   },
   features: {
     list: vi.fn(),

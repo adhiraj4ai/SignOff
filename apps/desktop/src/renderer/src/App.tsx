@@ -5,6 +5,7 @@ import { DocumentPane } from './components/DocumentPane'
 import { ReviewPanel } from './components/ReviewPanel'
 import { StatusBar } from './components/StatusBar'
 import { TabBar } from './components/TabBar'
+import { GitPanel } from './components/GitPanel'
 import { useVault } from './hooks/useVault'
 import type { ApprovalRecord, DocumentType, WorkflowConfig } from '@shared/ipc-types'
 
@@ -61,6 +62,7 @@ function SelectedDocument({
 
 export function App(): React.ReactElement {
   const { state, openVault, closeVault, selectDocument, closeTab, refresh, sync } = useVault()
+  const [showGit, setShowGit] = useState(false)
 
   if (!state) {
     return <VaultSwitcher onVaultSelected={openVault} />
@@ -109,7 +111,12 @@ export function App(): React.ReactElement {
           )}
         </div>
       </div>
-      <StatusBar vaultPath={state.vaultPath} vaultName={state.vaultName} />
+      <StatusBar
+        vaultPath={state.vaultPath}
+        vaultName={state.vaultName}
+        onOpenSourceControl={() => setShowGit(true)}
+      />
+      {showGit && <GitPanel vaultPath={state.vaultPath} onClose={() => setShowGit(false)} />}
     </div>
   )
 }
