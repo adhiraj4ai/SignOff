@@ -46,10 +46,8 @@ export function ReviewerSettings({ vaultPath, onClose }: Props): React.ReactElem
 
   return (
     <div className="flex flex-col gap-5 p-5 bg-surface border border-border rounded-xl">
-      <h2 className="text-[13px] font-semibold text-fg">Reviewer settings</h2>
-
       <section className="flex flex-col gap-2">
-        <h3 className="text-[11px] font-semibold text-fg/45 uppercase tracking-wider">Spec</h3>
+        <h3 className="text-[11px] font-semibold text-fg/45 tracking-wider">Spec</h3>
         <label className="flex flex-col gap-1">
           <span className="text-[12px] text-fg/60">Spec approvers</span>
           <input
@@ -75,7 +73,7 @@ export function ReviewerSettings({ vaultPath, onClose }: Props): React.ReactElem
       </section>
 
       <section className="flex flex-col gap-2">
-        <h3 className="text-[11px] font-semibold text-fg/45 uppercase tracking-wider">Plan</h3>
+        <h3 className="text-[11px] font-semibold text-fg/45 tracking-wider">Plan</h3>
         <label className="flex flex-col gap-1">
           <span className="text-[12px] text-fg/60">Plan approvers</span>
           <input

@@ -13,12 +13,14 @@ beforeEach(() => {
 
 describe('ReviewerSettings', () => {
   it('loads current approvers and saves edits', async () => {
-    render(<ReviewerSettings vaultPath="/v" onClose={() => {}} />)
+    const onClose = vi.fn()
+    render(<ReviewerSettings vaultPath="/v" onClose={onClose} />)
     await waitFor(() => screen.getByDisplayValue('lead@org.com'))
     fireEvent.change(screen.getByLabelText(/spec approvers/i), { target: { value: 'lead@org.com, arch@org.com' } })
     fireEvent.click(screen.getByRole('button', { name: /save/i }))
     await waitFor(() => expect(window.chuckle.workflows.write).toHaveBeenCalledWith('/v', expect.objectContaining({
       spec: expect.objectContaining({ required_approvers: ['lead@org.com', 'arch@org.com'] }),
     })))
+    await waitFor(() => expect(onClose).toHaveBeenCalled())
   })
 })
