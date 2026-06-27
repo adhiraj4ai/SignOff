@@ -69,5 +69,5 @@ export {
 // VaultManager
 export { VaultManager } from "./vault.js";
 
-// Migration (legacy features/ layout -> docs-as-vault)
-export { migrateVault } from "./migrate.js";
+// Migration (legacy features/ layout -> docs-as-vault; docs-as-vault -> index-by-path)
+export { migrateVault, migrateToIndex } from "./migrate.js";
