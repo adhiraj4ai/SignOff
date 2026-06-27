@@ -12,6 +12,7 @@ import {
   readWorkflows,
   getApprovalStatus,
   listFeatureNames,
+  inferFeatureName,
   documentPath,
   documentRelPath,
   approvalRelPath,
@@ -71,6 +72,51 @@ async function resolveVaultDir(selected: string): Promise<string> {
   }
 }
 
+/** Classify a markdown file as spec or plan from its path/filename. */
+function classifyDoc(relPath: string): DocumentType {
+  const p = relPath.toLowerCase()
+  if (/(^|\/)plans?(\/|$)/.test(p) || /plan/.test(path.basename(p))) return 'plan'
+  return 'spec'
+}
+
+/** Recursively collect .md files under a directory (ignoring nested .chuckle). */
+async function walkMarkdown(dir: string): Promise<string[]> {
+  const out: string[] = []
+  let entries: import('node:fs').Dirent[]
+  try {
+    entries = await fs.readdir(dir, { withFileTypes: true })
+  } catch {
+    return out
+  }
+  for (const e of entries) {
+    if (e.name === '.chuckle' || e.name === '.git' || e.name === 'node_modules') continue
+    const full = path.join(dir, e.name)
+    if (e.isDirectory()) out.push(...(await walkMarkdown(full)))
+    else if (e.isFile() && e.name.toLowerCase().endsWith('.md')) out.push(full)
+  }
+  return out
+}
+
+/** Detect the project's existing docs (docs/ and .superpowers/) and import each
+ *  markdown file into the vault, classified as spec/plan and submitted for review. */
+async function importProjectDocs(projectRoot: string, vaultDir: string): Promise<number> {
+  const sources = [path.join(projectRoot, 'docs'), path.join(projectRoot, '.superpowers')]
+  const { name, email } = await resolveVaultAuthor(vaultDir)
+  const vault = await VaultManager.open(vaultDir)
+  let count = 0
+  for (const src of sources) {
+    for (const file of await walkMarkdown(src)) {
+      const type = classifyDoc(path.relative(src, file))
+      const feature = inferFeatureName(path.basename(file))
+      if (!feature) continue
+      await fs.copyFile(file, documentPath(vaultDir, feature, type))
+      await vault.submitForReview(feature, type, email, name)
+      count++
+    }
+  }
+  return count
+}
+
 export async function createVault(
   projectRoot: string,
   name: string,
@@ -79,6 +125,8 @@ export async function createVault(
   const vaultDir = path.join(projectRoot, '.chuckle')
   const manager = await VaultManager.create(vaultDir, name, org)
   await ensureGitignored(projectRoot)
+  // Detect and ingest the project's existing docs so the vault isn't empty.
+  await importProjectDocs(projectRoot, vaultDir)
   await VaultManager.registerVault({
     name: manager.config.name,
     path: vaultDir,
