@@ -59,6 +59,10 @@ export {
   isStale,
 } from "./approval.js";
 
+// Comments
+export type { CommentEntry, CommentThread, CommentsFile } from "./comments.js";
+export { commentsRelPath, readComments, writeComments, addThread, addReply, setResolved } from "./comments.js";
+
 // Active-feature pointer
 export type { ActiveFeature } from "./activeFeature.js";
 export { writeActiveFeature, readActiveFeature } from "./activeFeature.js";
