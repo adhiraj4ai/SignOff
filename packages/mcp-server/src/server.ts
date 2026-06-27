@@ -19,32 +19,7 @@ export function createServer(vaultPath: string): Server {
       {
         name: "publish_document",
         description:
-          "Copy a markdown document into the Chuckle vault and create a git commit recording the submission for review.",
-        inputSchema: {
-          type: "object",
-          properties: {
-            source_path: {
-              type: "string",
-              description: "Absolute path to the .md file in the project repo",
-            },
-            feature_name: {
-              type: "string",
-              description:
-                "Vault feature folder name (e.g. 'user-auth'). Inferred from filename if omitted.",
-            },
-            document_type: {
-              type: "string",
-              enum: ["spec", "plan"],
-              description: "Document type — spec or plan",
-            },
-          },
-          required: ["source_path", "document_type"],
-        },
-      },
-      {
-        name: "submit_for_review",
-        description:
-          "Submit a spec/plan that already lives in the vault (specs/ or plans/) for review — records the submission and commits, without copying.",
+          "Register an in-project markdown document for review and create a git commit recording the submission — no copy made.",
         inputSchema: {
           type: "object",
           properties: {
@@ -57,8 +32,36 @@ export function createServer(vaultPath: string): Server {
               enum: ["spec", "plan"],
               description: "Document type — spec or plan",
             },
+            document_path: {
+              type: "string",
+              description: "Path to the document, relative to the project root, e.g. docs/specs/2026-06-27-user-auth-design.md",
+            },
           },
-          required: ["feature_name", "document_type"],
+          required: ["feature_name", "document_type", "document_path"],
+        },
+      },
+      {
+        name: "submit_for_review",
+        description:
+          "Submit an in-project spec/plan for review — registers the path in the vault manifest, records a pending approval, and commits.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            feature_name: {
+              type: "string",
+              description: "Feature name (e.g. 'user-auth')",
+            },
+            document_type: {
+              type: "string",
+              enum: ["spec", "plan"],
+              description: "Document type — spec or plan",
+            },
+            document_path: {
+              type: "string",
+              description: "Path to the document, relative to the project root, e.g. docs/specs/2026-06-27-user-auth-design.md",
+            },
+          },
+          required: ["feature_name", "document_type", "document_path"],
         },
       },
       {

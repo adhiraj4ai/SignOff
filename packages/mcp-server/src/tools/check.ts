@@ -1,5 +1,11 @@
+import fs from "node:fs/promises";
 import {
   getApprovalStatus,
+  readApproval,
+  isStale,
+  readManifest,
+  resolveDocPath,
+  hashContent,
   pullLatest,
   type DocumentType,
   type CheckApprovalResult,
@@ -32,9 +38,21 @@ export async function handleCheck(
     // no remote / offline — read whatever is local
   }
 
-  return getApprovalStatus(
-    vaultPath,
-    feature_name,
-    document_type as DocumentType
-  );
+  const status = await getApprovalStatus(vaultPath, feature_name, document_type as DocumentType);
+  let stale = false;
+  if (status.status === "approved") {
+    const [record, manifest] = await Promise.all([
+      readApproval(vaultPath, feature_name, document_type as DocumentType),
+      readManifest(vaultPath),
+    ]);
+    const abs = resolveDocPath(vaultPath, manifest, feature_name, document_type as DocumentType);
+    if (record && abs) {
+      try {
+        stale = isStale(record, hashContent(await fs.readFile(abs)));
+      } catch {
+        stale = false;
+      }
+    }
+  }
+  return { ...status, stale };
 }

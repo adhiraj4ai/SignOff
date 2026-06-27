@@ -67,4 +67,5 @@ export interface CheckApprovalResult {
   status: ApprovalStatus;
   approved_by?: string;
   approved_at?: string;
+  stale?: boolean;
 }

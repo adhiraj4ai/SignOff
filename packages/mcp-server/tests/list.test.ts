@@ -13,16 +13,18 @@ import { handleList } from "../src/tools/list.js";
 let tmpDir: string;
 let vaultPath: string;
 
-async function publishDoc(feature: string, type: "spec" | "plan") {
-  const src = path.join(tmpDir, `${feature}-${type}.md`);
-  await fs.writeFile(src, `# ${feature} ${type}\n`);
+async function submitDoc(feature: string, type: "spec" | "plan") {
+  const projectRoot = path.dirname(vaultPath);
+  const relPath = `${feature}-${type}.md`;
+  await fs.writeFile(path.join(projectRoot, relPath), `# ${feature} ${type}\n`);
   const vault = await VaultManager.open(vaultPath);
-  await vault.publish(src, feature, type, "dev@org.com", "Dev");
+  await vault.submitForReview(feature, type, relPath, "dev@org.com", "Dev");
 }
 
 beforeEach(async () => {
   tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "chuckle-mcp-list-"));
-  vaultPath = path.join(tmpDir, "vault");
+  // vaultPath is <tmp>/project/.signoff so project root is <tmp>/project/
+  vaultPath = path.join(tmpDir, "project", ".signoff");
   process.env.CHUCKLE_HOME = path.join(tmpDir, ".chuckle");
   await VaultManager.create(vaultPath, "test-project", "test-org");
 });
@@ -38,8 +40,8 @@ describe("handleList", () => {
     expect(result).toEqual([]);
   });
 
-  it("returns pending spec after publish", async () => {
-    await publishDoc("user-auth", "spec");
+  it("returns pending spec after submit", async () => {
+    await submitDoc("user-auth", "spec");
     const result = await handleList(vaultPath);
     expect(result).toHaveLength(1);
     expect(result[0].feature).toBe("user-auth");
@@ -48,9 +50,9 @@ describe("handleList", () => {
     expect(result[0].submitted_at).toMatch(/^\d{4}-\d{2}-\d{2}T/);
   });
 
-  it("returns two pending items when two features are published", async () => {
-    await publishDoc("user-auth", "spec");
-    await publishDoc("payment-gw", "plan");
+  it("returns two pending items when two features are submitted", async () => {
+    await submitDoc("user-auth", "spec");
+    await submitDoc("payment-gw", "plan");
     const result = await handleList(vaultPath);
     expect(result).toHaveLength(2);
     const features = result.map((r) => r.feature).sort();
@@ -58,7 +60,7 @@ describe("handleList", () => {
   });
 
   it("does not include approved documents", async () => {
-    await publishDoc("user-auth", "spec");
+    await submitDoc("user-auth", "spec");
     const record = (await readApproval(vaultPath, "user-auth", "spec"))!;
     const approved = appendHistory(record, {
       action: "approved",
@@ -73,7 +75,7 @@ describe("handleList", () => {
   });
 
   it("does not include rejected documents", async () => {
-    await publishDoc("user-auth", "spec");
+    await submitDoc("user-auth", "spec");
     const record = (await readApproval(vaultPath, "user-auth", "spec"))!;
     const rejected = appendHistory(record, {
       action: "rejected",
