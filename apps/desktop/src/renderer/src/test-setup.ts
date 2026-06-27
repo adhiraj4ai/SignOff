@@ -26,9 +26,11 @@ const mockChuckle: ChuckleAPI = {
     getApproval: vi.fn(),
     approve: vi.fn(),
     reject: vi.fn(),
+    isStale: vi.fn(),
   },
   workflows: {
     read: vi.fn(),
+    write: vi.fn(),
   },
   openExternal: vi.fn(),
 }

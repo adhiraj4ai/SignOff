@@ -17,6 +17,7 @@ export interface ApprovalHistoryEntry {
   by: string;       // git commit email of the actor
   at: string;       // ISO 8601 UTC
   message: string | null;
+  content_hash?: string;   // sha-256 of the doc bytes when this action was recorded
 }
 
 export interface ApprovalRecord {
@@ -41,8 +42,9 @@ export interface VaultWorkflows {
 
 export interface VaultConfig {
   name: string;
-  org: string;
+  org?: string;         // optional, legacy; not used by the docs-as-vault flow
   created_at: string;   // ISO 8601 UTC
+  doc_roots?: string[]; // dirs scanned for docs; default ["docs", ".superpowers"]
 }
 
 export interface VaultInfo {
@@ -65,4 +67,5 @@ export interface CheckApprovalResult {
   status: ApprovalStatus;
   approved_by?: string;
   approved_at?: string;
+  stale?: boolean;
 }

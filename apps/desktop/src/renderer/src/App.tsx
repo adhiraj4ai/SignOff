@@ -4,11 +4,12 @@ import { Sidebar } from './components/Sidebar'
 import { DocumentPane } from './components/DocumentPane'
 import { ReviewPanel } from './components/ReviewPanel'
 import { StatusBar } from './components/StatusBar'
-import { TabBar } from './components/TabBar'
 import { GitPanel } from './components/GitPanel'
 import { useVault } from './hooks/useVault'
 import { useAutoSync } from './hooks/useAutoSync'
-import type { ApprovalRecord, DocumentType, ReviewResult, WorkflowConfig } from '@shared/ipc-types'
+import type { ApprovalRecord, ApprovalStatus, DocumentType, ReviewResult, WorkflowConfig } from '@shared/ipc-types'
+
+const DOC_TYPES: DocumentType[] = ['spec', 'plan']
 
 type ActionDone = (result?: ReviewResult) => void
 
@@ -16,11 +17,15 @@ function SelectedDocument({
   vaultPath,
   feature,
   type,
+  docTypes,
+  onSelectType,
   onActionComplete,
 }: {
   vaultPath: string
   feature: string
   type: DocumentType
+  docTypes: { type: DocumentType; status: ApprovalStatus | 'not_found' }[]
+  onSelectType: (type: DocumentType) => void
   onActionComplete: ActionDone
 }): React.ReactElement {
   const [record, setRecord] = useState<ApprovalRecord | null | undefined>(undefined)
@@ -55,6 +60,8 @@ function SelectedDocument({
         vaultPath={vaultPath}
         feature={feature}
         type={type}
+        docTypes={docTypes}
+        onSelectType={onSelectType}
         onApprove={() => onDone()}
         onReject={() => onDone()}
         onSaved={onDone}
@@ -72,7 +79,7 @@ function SelectedDocument({
 }
 
 export function App(): React.ReactElement {
-  const { state, openVault, closeVault, selectDocument, closeTab, refresh, sync } = useVault()
+  const { state, openVault, closeVault, selectFeature, selectType, refresh, sync } = useVault()
   const [showGit, setShowGit] = useState(false)
   const [syncing, setSyncing] = useState(false)
   const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(null)
@@ -149,6 +156,10 @@ export function App(): React.ReactElement {
   }
 
   const active = state.active
+  const activeEntry = active ? state.features.find((f) => f.name === active.feature) : undefined
+  const activeTypes = activeEntry
+    ? DOC_TYPES.filter((t) => activeEntry[t] !== 'not_found').map((t) => ({ type: t, status: activeEntry[t] }))
+    : []
 
   return (
     <div className="relative flex flex-col h-screen overflow-hidden bg-app text-fg">
@@ -157,30 +168,31 @@ export function App(): React.ReactElement {
           vaultName={state.vaultName}
           features={state.features}
           selected={active}
-          onSelect={selectDocument}
+          onSelect={selectFeature}
           onSync={sync}
           onSwitchVault={closeVault}
         />
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-          <TabBar tabs={state.openTabs} active={active} onSelect={selectDocument} onClose={closeTab} />
           {!active ? (
             <div className="flex-1 grid place-items-center px-8">
               <div className="text-center max-w-sm">
                 <div className="mx-auto w-11 h-11 grid place-items-center rounded-xl bg-surface border border-border shadow-panel text-xl">
                   📄
                 </div>
-                <h2 className="mt-4 text-[15px] font-semibold text-fg">Pick a document to review</h2>
+                <h2 className="mt-4 text-[15px] font-semibold text-fg">Pick a feature to review</h2>
                 <p className="mt-1.5 text-[13px] leading-relaxed text-fg/50">
-                  Choose a spec or plan from the sidebar to read it and approve or request changes.
+                  Choose a feature from the sidebar to open its spec and plan, then approve or request changes.
                 </p>
               </div>
             </div>
           ) : (
             <SelectedDocument
-              key={`${active.feature}/${active.type}`}
+              key={active.feature}
               vaultPath={state.vaultPath}
               feature={active.feature}
               type={active.type}
+              docTypes={activeTypes}
+              onSelectType={selectType}
               onActionComplete={onActionComplete}
             />
           )}

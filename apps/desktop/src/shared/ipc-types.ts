@@ -60,15 +60,15 @@ export type IpcChannels =
   | 'vault:list' | 'vault:remove' | 'vault:create' | 'vault:open-existing' | 'vault:select-directory' | 'vault:sync' | 'vault:get-remote'
   | 'vault:log' | 'vault:status' | 'vault:push' | 'vault:publish-branch' | 'vault:author'
   | 'features:list'
-  | 'document:read' | 'document:write' | 'document:get-approval' | 'document:approve' | 'document:reject'
-  | 'workflows:read'
+  | 'document:read' | 'document:write' | 'document:get-approval' | 'document:approve' | 'document:reject' | 'document:is-stale'
+  | 'workflows:read' | 'workflows:write'
   | 'app:open-external'
 
 export interface ChuckleAPI {
   vault: {
     list(): Promise<VaultInfo[]>
     remove(vaultPath: string): Promise<void>
-    create(projectRoot: string, name: string, org: string): Promise<VaultOpenResult>
+    create(projectRoot: string, name: string): Promise<VaultOpenResult>
     openExisting(path: string): Promise<VaultOpenResult>
     selectDirectory(): Promise<string | null>
     sync(vaultPath: string): Promise<void>
@@ -88,9 +88,11 @@ export interface ChuckleAPI {
     getApproval(vaultPath: string, feature: string, type: DocumentType): Promise<ApprovalRecord | null>
     approve(vaultPath: string, feature: string, type: DocumentType, message: string | null): Promise<ReviewResult>
     reject(vaultPath: string, feature: string, type: DocumentType, message: string): Promise<ReviewResult>
+    isStale(vaultPath: string, feature: string, type: DocumentType): Promise<boolean>
   }
   workflows: {
     read(vaultPath: string): Promise<VaultWorkflows>
+    write(vaultPath: string, workflows: VaultWorkflows): Promise<void>
   }
   openExternal(url: string): Promise<void>
 }

@@ -15,21 +15,33 @@ import {
   rejectDocument,
   publishBranch,
   getVaultStatus,
+  writeVaultWorkflows,
+  readVaultWorkflows,
+  isDocumentStale,
 } from '../src/main/vault-bridge.js'
 
 let tmpDir: string
 let vaultPath: string
 
+/**
+ * Seed a document into the project tree (not the vault) and register it in the
+ * manifest via submitForReview. The vault lives at <tmpDir>/project/.signoff and
+ * the project root is <tmpDir>/project so relative paths resolve correctly.
+ */
 async function seedDoc(feature: string, type: 'spec' | 'plan', content = `# ${feature}\n`) {
-  const src = path.join(tmpDir, `${feature}-${type}.md`)
-  await fs.writeFile(src, content)
+  const projectRoot = path.dirname(vaultPath)
+  const rel = `docs/${type}s/${feature}.md`
+  await fs.mkdir(path.dirname(path.join(projectRoot, rel)), { recursive: true })
+  await fs.writeFile(path.join(projectRoot, rel), content)
   const vault = await VaultManager.open(vaultPath)
-  await vault.publish(src, feature, type, 'dev@org.com', 'Dev')
+  await vault.submitForReview(feature, type, rel, 'dev@org.com', 'Dev')
 }
 
 beforeEach(async () => {
   tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'chuckle-desktop-test-'))
-  vaultPath = path.join(tmpDir, 'vault')
+  // Vault is at <tmpDir>/project/.signoff so project root is <tmpDir>/project
+  await fs.mkdir(path.join(tmpDir, 'project'), { recursive: true })
+  vaultPath = path.join(tmpDir, 'project', '.signoff')
   process.env.CHUCKLE_HOME = path.join(tmpDir, '.chuckle')
   await VaultManager.create(vaultPath, 'test-project', 'test-org')
 })
@@ -52,21 +64,21 @@ describe('listVaults', () => {
 })
 
 describe('createVault', () => {
-  it('creates .chuckle in the project root, gitignores it, and registers it', async () => {
+  it('creates .signoff in the project root, gitignores it, and registers it', async () => {
     const projectRoot = path.join(tmpDir, 'my-project')
     await fs.mkdir(projectRoot, { recursive: true })
-    const result = await createVault(projectRoot, 'my-project', 'my-org')
+    const result = await createVault(projectRoot, 'my-project')
 
-    const vaultDir = path.join(projectRoot, '.chuckle')
+    const vaultDir = path.join(projectRoot, '.signoff')
     expect(result.name).toBe('my-project')
     expect(result.path).toBe(vaultDir)
 
-    // vault exists at <project>/.chuckle
+    // vault exists at <project>/.signoff
     expect((await fs.stat(path.join(vaultDir, 'config.json'))).isFile()).toBe(true)
     // parent project gitignores the vault
     const gitignore = await fs.readFile(path.join(projectRoot, '.gitignore'), 'utf-8')
-    expect(gitignore).toContain('.chuckle/')
-    // registered at the .chuckle dir
+    expect(gitignore).toContain('.signoff/')
+    // registered at the .signoff dir
     const vaults = await listVaults()
     expect(vaults.some((v) => v.path === vaultDir)).toBe(true)
   })
@@ -102,13 +114,20 @@ describe('listFeatures', () => {
 })
 
 describe('readDocument', () => {
-  it('returns markdown content of published document', async () => {
+  it('returns the project file content (not a vault copy)', async () => {
     await seedDoc('user-auth', 'spec', '# Auth Spec\n\nContent here.\n')
     const content = await readDocument(vaultPath, 'user-auth', 'spec')
     expect(content).toBe('# Auth Spec\n\nContent here.\n')
+    // The document must NOT exist as a copy inside the vault's specs/ directory
+    const projectRoot = path.dirname(vaultPath)
+    const vaultCopy = path.join(vaultPath, 'specs', 'user-auth.md')
+    await expect(fs.access(vaultCopy)).rejects.toThrow()
+    // The actual file is the project file
+    const projectFile = path.join(projectRoot, 'docs', 'specs', 'user-auth.md')
+    expect((await fs.stat(projectFile)).isFile()).toBe(true)
   })
 
-  it('throws if document does not exist', async () => {
+  it('throws if document does not exist in manifest', async () => {
     await expect(readDocument(vaultPath, 'user-auth', 'spec')).rejects.toThrow()
   })
 })
@@ -138,6 +157,15 @@ describe('approveDocument', () => {
     expect(lastEntry.message).toBe('LGTM')
   })
 
+  it('records content_hash in the history entry', async () => {
+    await seedDoc('user-auth', 'spec', '# Auth\n')
+    await approveDocument(vaultPath, 'user-auth', 'spec', null)
+    const record = await getDocumentApproval(vaultPath, 'user-auth', 'spec')
+    const lastEntry = record!.history.at(-1)!
+    expect(lastEntry.content_hash).toBeDefined()
+    expect(typeof lastEntry.content_hash).toBe('string')
+  })
+
   it('throws if no approval record exists to approve', async () => {
     await expect(approveDocument(vaultPath, 'user-auth', 'spec', null)).rejects.toThrow()
   })
@@ -152,6 +180,14 @@ describe('rejectDocument', () => {
     const lastEntry = record!.history.at(-1)!
     expect(lastEntry.action).toBe('rejected')
     expect(lastEntry.message).toBe('Needs more detail')
+  })
+
+  it('records content_hash in the rejection history entry', async () => {
+    await seedDoc('user-auth', 'spec', '# Auth\n')
+    await rejectDocument(vaultPath, 'user-auth', 'spec', 'Not ready')
+    const record = await getDocumentApproval(vaultPath, 'user-auth', 'spec')
+    const lastEntry = record!.history.at(-1)!
+    expect(lastEntry.content_hash).toBeDefined()
   })
 })
 
@@ -192,7 +228,7 @@ describe('git sync of review decisions', () => {
 })
 
 describe('createVault doc auto-detection', () => {
-  it('imports markdown from docs/ and .superpowers/, classified by name', async () => {
+  it('registers markdown from docs/ and .superpowers/ in the manifest (no copies)', async () => {
     const projectRoot = path.join(tmpDir, 'proj')
     await fs.mkdir(path.join(projectRoot, 'docs', 'specs'), { recursive: true })
     await fs.mkdir(path.join(projectRoot, 'docs', 'plans'), { recursive: true })
@@ -201,7 +237,7 @@ describe('createVault doc auto-detection', () => {
     await fs.writeFile(path.join(projectRoot, 'docs', 'plans', '2026-06-27-user-auth.md'), '# Auth plan\n')
     await fs.writeFile(path.join(projectRoot, '.superpowers', 'specs', '2026-06-27-billing-design.md'), '# Billing\n')
 
-    const result = await createVault(projectRoot, 'proj', 'org')
+    const result = await createVault(projectRoot, 'proj')
 
     const features = await listFeatures(result.path)
     const names = features.map((f) => f.name).sort()
@@ -209,7 +245,40 @@ describe('createVault doc auto-detection', () => {
     const userAuth = features.find((f) => f.name === 'user-auth')!
     expect(userAuth.spec).toBe('pending')
     expect(userAuth.plan).toBe('pending')
-    // content imported
+    // readDocument resolves to the project file content (not a vault copy)
     expect(await readDocument(result.path, 'user-auth', 'spec')).toContain('# Auth')
+    // No .md copies should exist in the vault's specs/ or plans/ directories
+    const vaultSpecsDir = path.join(result.path, 'specs')
+    const vaultPlansDir = path.join(result.path, 'plans')
+    await expect(fs.readdir(vaultSpecsDir)).rejects.toThrow()
+    await expect(fs.readdir(vaultPlansDir)).rejects.toThrow()
+  })
+})
+
+describe('writeVaultWorkflows', () => {
+  it('persists reviewers and commits', async () => {
+    await writeVaultWorkflows(vaultPath, {
+      spec: { required_approvers: ['lead@org.com'], min_approvals: 1 },
+      plan: { required_approvers: [], min_approvals: 1 },
+    })
+    const wf = await readVaultWorkflows(vaultPath)
+    expect(wf.spec.required_approvers).toEqual(['lead@org.com'])
+  })
+})
+
+describe('isDocumentStale', () => {
+  it('flags a doc stale after it changes post-approval', async () => {
+    await seedDoc('user-auth', 'spec', '# v1\n')
+    await approveDocument(vaultPath, 'user-auth', 'spec', null)
+    expect(await isDocumentStale(vaultPath, 'user-auth', 'spec')).toBe(false)
+    const projectRoot = path.dirname(vaultPath)
+    await fs.writeFile(path.join(projectRoot, 'docs/specs/user-auth.md'), '# v2\n')
+    expect(await isDocumentStale(vaultPath, 'user-auth', 'spec')).toBe(true)
+  })
+
+  it('returns false when document is not approved', async () => {
+    await seedDoc('user-auth', 'spec', '# v1\n')
+    // Not approved yet — isDocumentStale should return false
+    expect(await isDocumentStale(vaultPath, 'user-auth', 'spec')).toBe(false)
   })
 })

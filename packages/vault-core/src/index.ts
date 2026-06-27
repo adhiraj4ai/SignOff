@@ -25,6 +25,21 @@ export {
   listFeatureNames,
 } from "./layout.js";
 
+// Manifest (index-by-path)
+export type { Manifest, FeatureDocs } from "./manifest.js";
+export {
+  manifestRelPath,
+  projectRootOf,
+  readManifest,
+  writeManifest,
+  getFeatureDoc,
+  setFeatureDoc,
+  removeFeatureDoc,
+  manifestFeatureNames,
+  resolveDocPath,
+  hashContent,
+} from "./manifest.js";
+
 // Workflow
 export { readWorkflows, getWorkflowForType } from "./workflow.js";
 
@@ -35,6 +50,7 @@ export {
   writeApproval,
   appendHistory,
   getApprovalStatus,
+  isStale,
 } from "./approval.js";
 
 // Active-feature pointer
@@ -53,5 +69,5 @@ export {
 // VaultManager
 export { VaultManager } from "./vault.js";
 
-// Migration (legacy features/ layout -> docs-as-vault)
-export { migrateVault } from "./migrate.js";
+// Migration (legacy features/ layout -> docs-as-vault; docs-as-vault -> index-by-path)
+export { migrateVault, migrateToIndex } from "./migrate.js";

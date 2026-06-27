@@ -1,7 +1,8 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import type { ApprovalRecord, DocumentType, ReviewResult, WorkflowConfig } from '@shared/ipc-types'
 import { ReviewHistory } from './ReviewHistory'
 import { ApproveBar } from './ApproveBar'
+import { ReviewerSettings } from './ReviewerSettings'
 
 type Status = string
 
@@ -47,10 +48,62 @@ export function ReviewPanel({
   const status = record?.status ?? 'not_found'
   const submittedBy = record?.history.find((e) => e.action === 'submitted')?.by
 
+  const [authorEmail, setAuthorEmail] = useState<string>('')
+  const [isStale, setIsStale] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
+
+  useEffect(() => {
+    let alive = true
+    window.chuckle.vault.author(vaultPath).then((a) => {
+      if (alive) setAuthorEmail(a.email)
+    })
+    return () => { alive = false }
+  }, [vaultPath])
+
+  useEffect(() => {
+    if (!record) { setIsStale(false); return }
+    let alive = true
+    window.chuckle.document.isStale(vaultPath, feature, type).then((s) => {
+      if (alive) setIsStale(s)
+    })
+    return () => { alive = false }
+  }, [vaultPath, feature, type, record])
+
+  const canApprove =
+    !workflow?.required_approvers?.length ||
+    workflow.required_approvers.includes(authorEmail)
+
+  if (showSettings) {
+    return (
+      <aside className="w-80 min-w-80 border-l border-border bg-surface flex flex-col h-full overflow-y-auto">
+        <div className="px-5 py-4 border-b border-border flex items-center justify-between">
+          <h2 className="text-[11px] font-semibold text-fg/45">Reviewer settings</h2>
+          <button
+            onClick={() => setShowSettings(false)}
+            className="text-[12px] text-fg/50 hover:text-fg transition"
+          >
+            Back
+          </button>
+        </div>
+        <div className="p-5">
+          <ReviewerSettings vaultPath={vaultPath} onClose={() => setShowSettings(false)} />
+        </div>
+      </aside>
+    )
+  }
+
   return (
     <aside className="w-80 min-w-80 border-l border-border bg-surface flex flex-col h-full overflow-y-auto">
       <div className="px-5 py-4 border-b border-border">
-        <h2 className="text-[11px] font-semibold text-fg/45 mb-3">Review</h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-[11px] font-semibold text-fg/45">Review</h2>
+          <button
+            onClick={() => setShowSettings(true)}
+            className="text-[11px] text-fg/40 hover:text-iris transition px-1.5 py-0.5 rounded hover:bg-iris/10"
+          >
+            Reviewers
+          </button>
+        </div>
         {record === undefined ? (
           <p className="text-[12px] text-fg/40">Loading…</p>
         ) : (
@@ -61,6 +114,11 @@ export function ReviewPanel({
               <span className={`w-1.5 h-1.5 rounded-full ${statusDot(status)}`} />
               {statusLabel(status)}
             </span>
+            {isStale && record?.status === 'approved' && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-medium bg-wait-soft text-wait">
+                Approved — changed since approval
+              </span>
+            )}
             {submittedBy && (
               <p className="text-[12px] text-fg/50">
                 Submitted by <span className="text-fg/75">{submittedBy}</span>
@@ -88,6 +146,8 @@ export function ReviewPanel({
           feature={feature}
           type={type}
           status={record?.status ?? 'not_found'}
+          canApprove={canApprove}
+          approvers={workflow?.required_approvers ?? []}
           onActionComplete={onActionComplete}
         />
       )}

@@ -79,3 +79,15 @@ export async function getApprovalStatus(
 
   return { status: record.status };
 }
+
+/**
+ * True when the record is approved but the document has changed since the
+ * approval. A legacy approved entry without a content_hash is treated as
+ * current (staleness unknown).
+ */
+export function isStale(record: ApprovalRecord, currentHash: string): boolean {
+  if (record.status !== "approved") return false;
+  const approved = [...record.history].reverse().find((e) => e.action === "approved");
+  if (!approved?.content_hash) return false;
+  return approved.content_hash !== currentHash;
+}

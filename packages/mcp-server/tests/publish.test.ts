@@ -7,15 +7,21 @@ import { handlePublish } from "../src/tools/publish.js";
 
 let tmpDir: string;
 let vaultPath: string;
-let sourcePath: string;
+let projectRoot: string;
 
 beforeEach(async () => {
   tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "chuckle-mcp-test-"));
-  vaultPath = path.join(tmpDir, "vault");
+  // vaultPath is <tmp>/project/.signoff so project root is <tmp>/project/
+  vaultPath = path.join(tmpDir, "project", ".signoff");
+  projectRoot = path.dirname(vaultPath);
   process.env.CHUCKLE_HOME = path.join(tmpDir, ".chuckle");
   await VaultManager.create(vaultPath, "test-project", "test-org");
-  sourcePath = path.join(tmpDir, "2026-06-27-user-auth-design.md");
-  await fs.writeFile(sourcePath, "# User Auth Spec\n\nThis is the spec.\n");
+  // Create the source doc in the project root
+  await fs.mkdir(path.join(projectRoot, "docs"), { recursive: true });
+  await fs.writeFile(
+    path.join(projectRoot, "docs", "2026-06-27-user-auth-design.md"),
+    "# User Auth Spec\n\nThis is the spec.\n"
+  );
 });
 
 afterEach(async () => {
@@ -26,77 +32,52 @@ afterEach(async () => {
 describe("handlePublish", () => {
   it("publishes a spec document and returns vault_path, document_path, commit_sha", async () => {
     const result = await handlePublish(vaultPath, {
-      source_path: sourcePath,
       feature_name: "user-auth",
       document_type: "spec",
+      document_path: "docs/2026-06-27-user-auth-design.md",
     });
 
     expect(result.vault_path).toBe(vaultPath);
-    expect(result.document_path).toBe(
-      path.join(vaultPath, "specs", "user-auth.md")
-    );
+    expect(result.document_path).toContain("docs/2026-06-27-user-auth-design.md");
     expect(result.commit_sha).toMatch(/^[0-9a-f]{40}$/);
-
-    const content = await fs.readFile(result.document_path, "utf-8");
-    expect(content).toBe("# User Auth Spec\n\nThis is the spec.\n");
   });
 
-  it("infers feature_name from source_path filename when not provided", async () => {
-    const result = await handlePublish(vaultPath, {
-      source_path: sourcePath,
-      document_type: "spec",
-    });
-
-    expect(result.document_path).toBe(
-      path.join(vaultPath, "specs", "user-auth.md")
-    );
-  });
-
-  it("throws if source_path does not exist", async () => {
+  it("throws if feature_name is missing", async () => {
     await expect(
       handlePublish(vaultPath, {
-        source_path: path.join(tmpDir, "nonexistent.md"),
+        document_type: "spec",
+        document_path: "docs/2026-06-27-user-auth-design.md",
+      })
+    ).rejects.toThrow(/feature_name/);
+  });
+
+  it("throws if document_path is missing", async () => {
+    await expect(
+      handlePublish(vaultPath, {
         feature_name: "user-auth",
         document_type: "spec",
       })
-    ).rejects.toThrow();
+    ).rejects.toThrow(/document_path/);
   });
 
   it("throws if document_type is invalid", async () => {
     await expect(
       handlePublish(vaultPath, {
-        source_path: sourcePath,
         feature_name: "user-auth",
         document_type: "invalid",
+        document_path: "docs/2026-06-27-user-auth-design.md",
       })
     ).rejects.toThrow(/document_type/);
   });
 
   it("writes the active-feature pointer to the project root on publish", async () => {
-    const projectRoot = path.join(tmpDir, "project");
-    await fs.mkdir(projectRoot, { recursive: true });
-
     await handlePublish(
       vaultPath,
-      { source_path: sourcePath, feature_name: "user-auth", document_type: "spec" },
-      projectRoot
-    );
-
-    const pointer = JSON.parse(
-      await fs.readFile(path.join(projectRoot, ".chuckle", "active-feature.json"), "utf-8")
-    );
-    expect(pointer.feature).toBe("user-auth");
-    expect(pointer.vaultPath).toBe(vaultPath);
-    expect(pointer.publishedAt).toMatch(/^\d{4}-\d{2}-\d{2}T.*Z$/);
-  });
-
-  it("records the inferred feature name in the pointer when not provided", async () => {
-    const projectRoot = path.join(tmpDir, "project2");
-    await fs.mkdir(projectRoot, { recursive: true });
-
-    await handlePublish(
-      vaultPath,
-      { source_path: sourcePath, document_type: "spec" },
+      {
+        feature_name: "user-auth",
+        document_type: "spec",
+        document_path: "docs/2026-06-27-user-auth-design.md",
+      },
       projectRoot
     );
 

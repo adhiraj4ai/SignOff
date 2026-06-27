@@ -5,7 +5,7 @@ const api: ChuckleAPI = {
   vault: {
     list: () => ipcRenderer.invoke('vault:list'),
     remove: (vaultPath) => ipcRenderer.invoke('vault:remove', { vaultPath }),
-    create: (path, name, org) => ipcRenderer.invoke('vault:create', { path, name, org }),
+    create: (path, name) => ipcRenderer.invoke('vault:create', { path, name }),
     openExisting: (path) => ipcRenderer.invoke('vault:open-existing', { path }),
     selectDirectory: () => ipcRenderer.invoke('vault:select-directory'),
     sync: (vaultPath) => ipcRenderer.invoke('vault:sync', { vaultPath }),
@@ -30,9 +30,12 @@ const api: ChuckleAPI = {
       ipcRenderer.invoke('document:approve', { vaultPath, feature, type, message }),
     reject: (vaultPath, feature, type, message) =>
       ipcRenderer.invoke('document:reject', { vaultPath, feature, type, message }),
+    isStale: (vaultPath, feature, type) =>
+      ipcRenderer.invoke('document:is-stale', { vaultPath, feature, type }),
   },
   workflows: {
     read: (vaultPath) => ipcRenderer.invoke('workflows:read', { vaultPath }),
+    write: (vaultPath, workflows) => ipcRenderer.invoke('workflows:write', { vaultPath, workflows }),
   },
   openExternal: (url) => ipcRenderer.invoke('app:open-external', { url }),
 }

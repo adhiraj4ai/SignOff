@@ -13,6 +13,8 @@ import {
   approveDocument,
   rejectDocument,
   readVaultWorkflows,
+  writeVaultWorkflows,
+  isDocumentStale,
   getVaultRemote,
   getVaultLog,
   getVaultStatus,
@@ -25,6 +27,7 @@ function createWindow(): void {
   const win = new BrowserWindow({
     width: 1200,
     height: 800,
+    title: 'Signoff',
     webPreferences: {
       preload: join(__dirname, '../preload/index.cjs'),
       contextIsolation: true,
@@ -41,7 +44,7 @@ function createWindow(): void {
 function registerIpcHandlers(): void {
   ipcMain.handle('vault:list', () => listVaults())
   ipcMain.handle('vault:remove', (_e, { vaultPath }) => removeVault(vaultPath))
-  ipcMain.handle('vault:create', (_e, { path, name, org }) => createVault(path, name, org))
+  ipcMain.handle('vault:create', (_e, { path, name }) => createVault(path, name))
   ipcMain.handle('vault:open-existing', (_e, { path }) => openExistingVault(path))
   ipcMain.handle('vault:select-directory', async () => {
     const result = await dialog.showOpenDialog({ properties: ['openDirectory'] })
@@ -64,6 +67,8 @@ function registerIpcHandlers(): void {
   ipcMain.handle('document:approve', (_e, { vaultPath, feature, type, message }) => approveDocument(vaultPath, feature, type, message))
   ipcMain.handle('document:reject', (_e, { vaultPath, feature, type, message }) => rejectDocument(vaultPath, feature, type, message))
   ipcMain.handle('workflows:read', (_e, { vaultPath }) => readVaultWorkflows(vaultPath))
+  ipcMain.handle('workflows:write', (_e, { vaultPath, workflows }) => writeVaultWorkflows(vaultPath, workflows))
+  ipcMain.handle('document:is-stale', (_e, { vaultPath, feature, type }) => isDocumentStale(vaultPath, feature, type))
 }
 
 app.whenReady().then(() => {
