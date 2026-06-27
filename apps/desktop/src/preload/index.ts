@@ -12,6 +12,7 @@ const api: ChuckleAPI = {
     log: (vaultPath) => ipcRenderer.invoke('vault:log', { vaultPath }),
     status: (vaultPath) => ipcRenderer.invoke('vault:status', { vaultPath }),
     push: (vaultPath) => ipcRenderer.invoke('vault:push', { vaultPath }),
+    publishBranch: (vaultPath) => ipcRenderer.invoke('vault:publish-branch', { vaultPath }),
   },
   features: {
     list: (vaultPath) => ipcRenderer.invoke('features:list', { vaultPath }),

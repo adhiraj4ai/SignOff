@@ -16,6 +16,7 @@ import {
   getVaultLog,
   getVaultStatus,
   pushVault,
+  publishBranch,
 } from './vault-bridge.js'
 
 function createWindow(): void {
@@ -48,6 +49,7 @@ function registerIpcHandlers(): void {
   ipcMain.handle('vault:log', (_e, { vaultPath }) => getVaultLog(vaultPath))
   ipcMain.handle('vault:status', (_e, { vaultPath }) => getVaultStatus(vaultPath))
   ipcMain.handle('vault:push', (_e, { vaultPath }) => pushVault(vaultPath))
+  ipcMain.handle('vault:publish-branch', (_e, { vaultPath }) => publishBranch(vaultPath))
   ipcMain.handle('features:list', (_e, { vaultPath }) => listFeatures(vaultPath))
   ipcMain.handle('document:read', (_e, { vaultPath, feature, type }) => readDocument(vaultPath, feature, type))
   ipcMain.handle('document:write', (_e, { vaultPath, feature, type, content }) =>

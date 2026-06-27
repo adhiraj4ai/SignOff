@@ -17,7 +17,17 @@ import {
   type ApprovalRecord,
   type DocumentType,
 } from '@chuckle/vault-core'
-import type { FeatureEntry, GitCommit, GitStatus } from '../shared/ipc-types.js'
+import type { FeatureEntry, GitCommit, GitStatus, ReviewResult } from '../shared/ipc-types.js'
+
+/** Push the just-made commit, reporting whether it reached the remote. */
+async function trySync(vaultPath: string): Promise<ReviewResult> {
+  try {
+    await pushToRemote(vaultPath)
+    return { pushed: true }
+  } catch (err) {
+    return { pushed: false, reason: err instanceof Error ? err.message : String(err) }
+  }
+}
 
 async function resolveVaultAuthor(vaultPath: string): Promise<{ name: string; email: string }> {
   const git = simpleGit(vaultPath)
@@ -99,12 +109,12 @@ export async function writeDocument(
   feature: string,
   type: DocumentType,
   content: string
-): Promise<void> {
+): Promise<ReviewResult> {
   const rel = path.join('features', feature, `${type}.md`)
   await fs.writeFile(path.join(vaultPath, rel), content)
   const { name, email } = await resolveVaultAuthor(vaultPath)
   await stageAndCommit(vaultPath, [rel], `docs(${feature}): edit ${type}`, email, name)
-  try { await pushToRemote(vaultPath) } catch { /* no remote configured — ignore */ }
+  return trySync(vaultPath)
 }
 
 export async function approveDocument(
@@ -112,7 +122,7 @@ export async function approveDocument(
   feature: string,
   type: DocumentType,
   message: string | null
-): Promise<void> {
+): Promise<ReviewResult> {
   const record = await readApproval(vaultPath, feature, type)
   if (!record) throw new Error(`no approval record for ${feature}/${type}`)
   const { name, email } = await resolveVaultAuthor(vaultPath)
@@ -125,7 +135,7 @@ export async function approveDocument(
   await writeApproval(vaultPath, updated)
   const approvalFile = path.join('features', feature, `${type}.approval.json`)
   await stageAndCommit(vaultPath, [approvalFile], `review: approve ${feature}/${type}`, email, name)
-  try { await pushToRemote(vaultPath) } catch { /* no remote configured — ignore */ }
+  return trySync(vaultPath)
 }
 
 export async function rejectDocument(
@@ -133,7 +143,7 @@ export async function rejectDocument(
   feature: string,
   type: DocumentType,
   message: string
-): Promise<void> {
+): Promise<ReviewResult> {
   const record = await readApproval(vaultPath, feature, type)
   if (!record) throw new Error(`no approval record for ${feature}/${type}`)
   const { name, email } = await resolveVaultAuthor(vaultPath)
@@ -146,7 +156,7 @@ export async function rejectDocument(
   await writeApproval(vaultPath, updated)
   const approvalFile = path.join('features', feature, `${type}.approval.json`)
   await stageAndCommit(vaultPath, [approvalFile], `review: reject ${feature}/${type}`, email, name)
-  try { await pushToRemote(vaultPath) } catch { /* no remote configured — ignore */ }
+  return trySync(vaultPath)
 }
 
 export async function readVaultWorkflows(vaultPath: string): Promise<VaultWorkflows> {
@@ -184,6 +194,18 @@ export async function getVaultStatus(vaultPath: string): Promise<GitStatus> {
 export async function pushVault(vaultPath: string): Promise<{ ok: boolean; error?: string }> {
   try {
     await pushToRemote(vaultPath)
+    return { ok: true }
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) }
+  }
+}
+
+/** Set the upstream and push: `git push -u origin <branch>`. */
+export async function publishBranch(vaultPath: string): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const git = simpleGit(vaultPath)
+    const branch = (await git.status()).current ?? 'main'
+    await git.push(['-u', 'origin', branch])
     return { ok: true }
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) }

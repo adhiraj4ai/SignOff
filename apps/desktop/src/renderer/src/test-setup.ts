@@ -13,6 +13,7 @@ const mockChuckle: ChuckleAPI = {
     log: vi.fn(),
     status: vi.fn(),
     push: vi.fn(),
+    publishBranch: vi.fn(),
   },
   features: {
     list: vi.fn(),
