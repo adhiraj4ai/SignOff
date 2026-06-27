@@ -116,7 +116,9 @@ export class VaultManager {
     const sha = await this.recordSubmission(featureName, type, srcRelPath, authorEmail, authorName);
     return {
       vault_path: this._vaultPath,
-      document_path: resolveDocPath(this._vaultPath, manifest, featureName, type) ?? srcRelPath,
+      document_path:
+        resolveDocPath(this._vaultPath, manifest, featureName, type) ??
+        path.join(projectRootOf(this._vaultPath), srcRelPath),
       commit_sha: sha,
     };
   }
