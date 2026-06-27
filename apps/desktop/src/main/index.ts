@@ -1,0 +1,54 @@
+import { app, BrowserWindow, ipcMain, dialog } from 'electron'
+import { join } from 'path'
+import {
+  listVaults,
+  createVault,
+  openExistingVault,
+  syncVault,
+  listFeatures,
+  readDocument,
+  getDocumentApproval,
+  approveDocument,
+  rejectDocument,
+  readVaultWorkflows,
+} from './vault-bridge.js'
+
+function createWindow(): void {
+  const win = new BrowserWindow({
+    width: 1200,
+    height: 800,
+    webPreferences: {
+      preload: join(__dirname, '../preload/index.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  })
+  if (process.env['ELECTRON_RENDERER_URL']) {
+    win.loadURL(process.env['ELECTRON_RENDERER_URL'])
+  } else {
+    win.loadFile(join(__dirname, '../renderer/index.html'))
+  }
+}
+
+function registerIpcHandlers(): void {
+  ipcMain.handle('vault:list', () => listVaults())
+  ipcMain.handle('vault:create', (_e, { path, name, org }) => createVault(path, name, org))
+  ipcMain.handle('vault:open-existing', (_e, { path }) => openExistingVault(path))
+  ipcMain.handle('vault:select-directory', async () => {
+    const result = await dialog.showOpenDialog({ properties: ['openDirectory'] })
+    return result.canceled ? null : result.filePaths[0] ?? null
+  })
+  ipcMain.handle('vault:sync', (_e, { vaultPath }) => syncVault(vaultPath))
+  ipcMain.handle('features:list', (_e, { vaultPath }) => listFeatures(vaultPath))
+  ipcMain.handle('document:read', (_e, { vaultPath, feature, type }) => readDocument(vaultPath, feature, type))
+  ipcMain.handle('document:get-approval', (_e, { vaultPath, feature, type }) => getDocumentApproval(vaultPath, feature, type))
+  ipcMain.handle('document:approve', (_e, { vaultPath, feature, type, message }) => approveDocument(vaultPath, feature, type, message))
+  ipcMain.handle('document:reject', (_e, { vaultPath, feature, type, message }) => rejectDocument(vaultPath, feature, type, message))
+  ipcMain.handle('workflows:read', (_e, { vaultPath }) => readVaultWorkflows(vaultPath))
+}
+
+app.whenReady().then(() => {
+  registerIpcHandlers()
+  createWindow()
+})
+app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit() })
