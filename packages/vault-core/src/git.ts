@@ -36,5 +36,6 @@ export async function pushToRemote(vaultPath: string): Promise<void> {
 export async function getHeadSha(vaultPath: string): Promise<string> {
   const git = simpleGit(vaultPath);
   const log = await git.log({ maxCount: 1 });
-  return log.latest?.hash ?? "";
+  if (!log.latest) throw new Error("no commits in vault repo");
+  return log.latest.hash;
 }

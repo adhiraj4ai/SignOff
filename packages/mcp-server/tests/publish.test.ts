@@ -47,7 +47,9 @@ describe("handlePublish", () => {
       document_type: "spec",
     });
 
-    expect(result.document_path).toContain("user-auth");
+    expect(result.document_path).toBe(
+      path.join(vaultPath, "features", "user-auth", "spec.md")
+    );
   });
 
   it("throws if source_path does not exist", async () => {
