@@ -7,7 +7,6 @@ import {
   writeActiveFeature,
   readApproval,
   writeApproval,
-  appendHistory,
   readManifest,
   writeManifest,
   setFeatureDoc,
@@ -32,21 +31,26 @@ async function registerDoc(feature: string, type: "spec" | "plan", rel: string):
     type,
     workflow: type,
     status: "pending",
+    reviewers: {},
     history: [{ action: "submitted", by: "dev@org.com", at: new Date().toISOString(), message: null }],
   };
   await writeApproval(vaultPath, record);
 }
 
-/** Flips an existing approval record to "approved". */
+/** Flips an existing approval record to "approved" via the reviewers map. */
 async function approve(feature: string, type: "spec" | "plan"): Promise<void> {
   const record = await readApproval(vaultPath, feature, type);
   if (!record) throw new Error(`no record to approve for ${feature}/${type}`);
-  const updated = appendHistory(record, {
-    action: "approved",
-    by: "reviewer@org.com",
-    at: new Date().toISOString(),
-    message: null,
-  });
+  const now = new Date().toISOString();
+  // Drive approval through the per-reviewer map so deriveStatus resolves to "approved".
+  // required_approvers is empty (default workflows), so any approved reviewer suffices.
+  // No currentHash (doc not written to disk here), so approvedFresh passes without content_hash.
+  const updated: ApprovalRecord = {
+    ...record,
+    status: "approved",
+    reviewers: { "reviewer@org.com": { status: "approved", at: now } },
+    history: [...record.history, { action: "approved", by: "reviewer@org.com", at: now, message: null }],
+  };
   await writeApproval(vaultPath, updated);
 }
 
@@ -104,6 +108,17 @@ describe("evaluateGate", () => {
     const decision = await evaluateGate(writeEvent("docs/plans/2026-06-27-user-auth.md"));
     expect(decision.allow).toBe(false);
     expect(decision.reason).toMatch(/spec/i);
+  });
+
+  it("blocks the plan doc while the spec is only in_review", async () => {
+    await registerDoc("user-auth", "spec", "docs/specs/2026-06-27-user-auth-design.md");
+    await registerDoc("user-auth", "plan", "docs/plans/2026-06-27-user-auth.md");
+    // set spec reviewer to in_review
+    const rec = await readApproval(vaultPath, "user-auth", "spec");
+    rec!.reviewers = { "r@o.c": { status: "in_review", at: "t" } };
+    await writeApproval(vaultPath, rec!);
+    const d = await evaluateGate(writeEvent("docs/plans/2026-06-27-user-auth.md"));
+    expect(d.allow).toBe(false);
   });
 
   it("allows the plan doc once the spec is approved", async () => {
