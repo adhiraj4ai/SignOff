@@ -31,6 +31,17 @@ describe('VaultSwitcher', () => {
     expect(onSelected).toHaveBeenCalledWith('/vaults/alpha', 'project-alpha')
   })
 
+  it('removes a recent project when its remove button is clicked', async () => {
+    vi.mocked(window.chuckle.vault.list).mockResolvedValue(mockVaults)
+    vi.mocked(window.chuckle.vault.remove).mockResolvedValue(undefined)
+    render(<VaultSwitcher onVaultSelected={() => {}} />)
+    await waitFor(() => screen.getByText('project-alpha'))
+    fireEvent.click(screen.getByRole('button', { name: /remove project-alpha/i }))
+    await waitFor(() => expect(window.chuckle.vault.remove).toHaveBeenCalledWith('/vaults/alpha'))
+    await waitFor(() => expect(screen.queryByText('project-alpha')).not.toBeInTheDocument())
+    expect(screen.getByText('project-beta')).toBeInTheDocument()
+  })
+
   it('shows empty state when no projects registered', async () => {
     vi.mocked(window.chuckle.vault.list).mockResolvedValue([])
     render(<VaultSwitcher onVaultSelected={() => {}} />)

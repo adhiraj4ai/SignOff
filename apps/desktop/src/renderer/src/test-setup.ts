@@ -5,6 +5,7 @@ import type { ChuckleAPI } from '@shared/ipc-types'
 const mockChuckle: ChuckleAPI = {
   vault: {
     list: vi.fn(),
+    remove: vi.fn(),
     create: vi.fn(),
     openExisting: vi.fn(),
     selectDirectory: vi.fn(),

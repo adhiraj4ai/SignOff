@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron'
 import { join } from 'path'
 import {
   listVaults,
+  removeVault,
   createVault,
   openExistingVault,
   syncVault,
@@ -39,6 +40,7 @@ function createWindow(): void {
 
 function registerIpcHandlers(): void {
   ipcMain.handle('vault:list', () => listVaults())
+  ipcMain.handle('vault:remove', (_e, { vaultPath }) => removeVault(vaultPath))
   ipcMain.handle('vault:create', (_e, { path, name, org }) => createVault(path, name, org))
   ipcMain.handle('vault:open-existing', (_e, { path }) => openExistingVault(path))
   ipcMain.handle('vault:select-directory', async () => {

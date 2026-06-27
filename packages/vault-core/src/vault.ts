@@ -195,4 +195,12 @@ export class VaultManager {
     await fs.mkdir(chuckleHome(), { recursive: true });
     await fs.writeFile(registryPath(), JSON.stringify(registry, null, 2) + "\n");
   }
+
+  /** Remove a vault from the recent-projects registry. Does not touch the vault on disk. */
+  static async removeVault(vaultPath: string): Promise<void> {
+    const existing = await VaultManager.listVaults();
+    const registry: VaultsRegistry = { vaults: existing.filter((v) => v.path !== vaultPath) };
+    await fs.mkdir(chuckleHome(), { recursive: true });
+    await fs.writeFile(registryPath(), JSON.stringify(registry, null, 2) + "\n");
+  }
 }

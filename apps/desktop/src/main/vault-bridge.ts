@@ -46,6 +46,11 @@ export async function listVaults(): Promise<VaultInfo[]> {
   return VaultManager.listVaults()
 }
 
+/** Remove a vault from the recent-projects list (registry only; disk untouched). */
+export async function removeVault(vaultPath: string): Promise<void> {
+  return VaultManager.removeVault(vaultPath)
+}
+
 /** Add `.chuckle/` to the project's .gitignore so the vault stays uncommitted there. */
 async function ensureGitignored(projectRoot: string): Promise<void> {
   const gitignore = path.join(projectRoot, '.gitignore')

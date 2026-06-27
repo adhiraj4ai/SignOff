@@ -24,6 +24,11 @@ export function VaultSwitcher({ onVaultSelected }: Props): React.ReactElement {
     onVaultSelected(vault.path, vault.name)
   }
 
+  async function handleRemove(vaultPath: string): Promise<void> {
+    await window.chuckle.vault.remove(vaultPath)
+    setVaults((prev) => (prev ? prev.filter((v) => v.path !== vaultPath) : prev))
+  }
+
   async function handleCreateVault(): Promise<void> {
     const dir = await window.chuckle.vault.selectDirectory()
     if (!dir) return
@@ -60,10 +65,10 @@ export function VaultSwitcher({ onVaultSelected }: Props): React.ReactElement {
             <h2 className="text-[11px] font-semibold text-fg/45 mb-2">Recent projects</h2>
             <ul className="bg-surface border border-border rounded-xl shadow-panel overflow-hidden">
               {vaults.map((v) => (
-                <li key={v.path} className="border-b border-border last:border-b-0">
+                <li key={v.path} className="group/row relative border-b border-border last:border-b-0">
                   <button
                     onClick={() => onVaultSelected(v.path, v.name)}
-                    className="group w-full text-left px-4 py-3 hover:bg-app transition-colors flex items-center gap-3"
+                    className="w-full text-left pl-4 pr-10 py-3 hover:bg-app transition-colors flex items-center gap-3"
                   >
                     <span className="grid place-items-center w-8 h-8 rounded-lg bg-iris-soft text-iris text-[13px] font-semibold shrink-0">
                       {v.name.slice(0, 1).toUpperCase()}
@@ -72,6 +77,16 @@ export function VaultSwitcher({ onVaultSelected }: Props): React.ReactElement {
                       <span className="block font-medium text-[14px] text-fg truncate">{v.name}</span>
                       <span className="block text-[11.5px] text-fg/40 font-mono truncate">{v.path}</span>
                     </span>
+                  </button>
+                  <button
+                    onClick={() => handleRemove(v.path)}
+                    aria-label={`Remove ${v.name} from recent projects`}
+                    title="Remove from recent projects"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 grid place-items-center rounded-md text-fg/30 hover:text-fg hover:bg-border opacity-0 group-hover/row:opacity-100 focus:opacity-100 transition"
+                  >
+                    <svg viewBox="0 0 12 12" className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <path d="M2 2l8 8M10 2l-8 8" strokeLinecap="round" />
+                    </svg>
                   </button>
                 </li>
               ))}

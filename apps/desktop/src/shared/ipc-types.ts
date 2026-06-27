@@ -57,7 +57,7 @@ export interface ReviewResult {
 }
 
 export type IpcChannels =
-  | 'vault:list' | 'vault:create' | 'vault:open-existing' | 'vault:select-directory' | 'vault:sync' | 'vault:get-remote'
+  | 'vault:list' | 'vault:remove' | 'vault:create' | 'vault:open-existing' | 'vault:select-directory' | 'vault:sync' | 'vault:get-remote'
   | 'vault:log' | 'vault:status' | 'vault:push' | 'vault:publish-branch' | 'vault:author'
   | 'features:list'
   | 'document:read' | 'document:write' | 'document:get-approval' | 'document:approve' | 'document:reject'
@@ -67,6 +67,7 @@ export type IpcChannels =
 export interface ChuckleAPI {
   vault: {
     list(): Promise<VaultInfo[]>
+    remove(vaultPath: string): Promise<void>
     create(projectRoot: string, name: string, org: string): Promise<VaultOpenResult>
     openExisting(path: string): Promise<VaultOpenResult>
     selectDirectory(): Promise<string | null>
