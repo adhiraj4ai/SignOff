@@ -1,0 +1,11 @@
+import path from "node:path";
+
+// Strips date prefix (YYYY-MM-DD-), trailing -design/-spec/-plan suffix, and .md extension
+export function inferFeatureName(filename: string): string {
+  const basename = path.basename(filename, ".md");
+  // Remove leading date prefix: YYYY-MM-DD-
+  const withoutDate = basename.replace(/^\d{4}-\d{2}-\d{2}-/, "");
+  // Remove trailing -design, -spec, -plan suffixes
+  const withoutSuffix = withoutDate.replace(/-(design|spec|plan)$/, "");
+  return withoutSuffix.toLowerCase();
+}
