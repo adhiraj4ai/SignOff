@@ -94,6 +94,79 @@ describe('ReviewPanel status display', () => {
   })
 })
 
+describe('inline note composer for approve/request_changes', () => {
+  it('clicking Approve reveals a textarea with note placeholder', async () => {
+    render(
+      <ReviewPanel
+        vaultPath="/v" feature="f" type="spec"
+        derivedStatus="in_review"
+        record={record({ 'me@o.c': { status: 'in_review', at: 't' } })}
+        workflow={workflow}
+        onActionComplete={() => {}}
+      />
+    )
+    await waitFor(() => screen.getByRole('button', { name: /^approve$/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^approve$/i }))
+    await waitFor(() => screen.getByPlaceholderText(/note/i))
+    expect(screen.getByPlaceholderText(/note/i)).toBeInTheDocument()
+  })
+
+  it('typing a note and confirming calls review.action with the note', async () => {
+    const onDone = vi.fn()
+    render(
+      <ReviewPanel
+        vaultPath="/v" feature="f" type="spec"
+        derivedStatus="in_review"
+        record={record({ 'me@o.c': { status: 'in_review', at: 't' } })}
+        workflow={workflow}
+        onActionComplete={onDone}
+      />
+    )
+    await waitFor(() => screen.getByRole('button', { name: /^approve$/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^approve$/i }))
+    await waitFor(() => screen.getByPlaceholderText(/note/i))
+    fireEvent.change(screen.getByPlaceholderText(/note/i), { target: { value: 'my note' } })
+    fireEvent.click(screen.getAllByRole('button', { name: /^approve$/i })[0])
+    await waitFor(() => expect(window.chuckle.review.action).toHaveBeenCalledWith('/v', 'f', 'spec', 'approve', 'my note'))
+  })
+
+  it('clicking Request changes then confirming with empty note calls with null', async () => {
+    render(
+      <ReviewPanel
+        vaultPath="/v" feature="f" type="spec"
+        derivedStatus="in_review"
+        record={record({ 'me@o.c': { status: 'in_review', at: 't' } })}
+        workflow={workflow}
+        onActionComplete={() => {}}
+      />
+    )
+    await waitFor(() => screen.getByRole('button', { name: /request changes/i }))
+    fireEvent.click(screen.getByRole('button', { name: /request changes/i }))
+    await waitFor(() => screen.getByPlaceholderText(/note/i))
+    // Leave textarea empty
+    fireEvent.click(screen.getByRole('button', { name: /request changes/i }))
+    await waitFor(() => expect(window.chuckle.review.action).toHaveBeenCalledWith('/v', 'f', 'spec', 'request_changes', null))
+  })
+
+  it('Cancel closes the composer without submitting', async () => {
+    render(
+      <ReviewPanel
+        vaultPath="/v" feature="f" type="spec"
+        derivedStatus="in_review"
+        record={record({ 'me@o.c': { status: 'in_review', at: 't' } })}
+        workflow={workflow}
+        onActionComplete={() => {}}
+      />
+    )
+    await waitFor(() => screen.getByRole('button', { name: /^approve$/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^approve$/i }))
+    await waitFor(() => screen.getByPlaceholderText(/note/i))
+    fireEvent.click(screen.getByRole('button', { name: /cancel/i }))
+    await waitFor(() => screen.getByRole('button', { name: /^approve$/i }))
+    expect(window.chuckle.review.action).not.toHaveBeenCalled()
+  })
+})
+
 describe('Vault access section', () => {
   it('shows the vault clone URL for reviewers when a remote is set', async () => {
     vi.mocked(window.chuckle.vault.getRemote).mockResolvedValue('git@github.com:org/proj-signoff.git')

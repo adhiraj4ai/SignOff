@@ -73,6 +73,8 @@ export function ReviewPanel({
   const [vaultRemote, setVaultRemote] = useState<string | null | undefined>(undefined)
   const [hasClaudeMd, setHasClaudeMd] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [pendingAction, setPendingAction] = useState<'approve' | 'request_changes' | null>(null)
+  const [note, setNote] = useState('')
 
   useEffect(() => {
     let alive = true
@@ -108,6 +110,19 @@ export function ReviewPanel({
       onActionComplete(r)
     } finally {
       setBusy(false)
+    }
+  }
+
+  async function submitWithNote(): Promise<void> {
+    if (!pendingAction) return
+    setBusy(true)
+    try {
+      const r = await window.chuckle.review.action(vaultPath, feature, type, pendingAction, note.trim() || null)
+      onActionComplete(r)
+    } finally {
+      setBusy(false)
+      setPendingAction(null)
+      setNote('')
     }
   }
 
@@ -217,20 +232,52 @@ export function ReviewPanel({
           )}
           {meStatus === 'in_review' && (
             <>
-              <button
-                onClick={() => act('approve')}
-                disabled={busy}
-                className="w-full px-4 py-2 rounded-lg bg-ok text-white text-[13px] font-semibold hover:brightness-95 active:brightness-90 disabled:opacity-50 transition"
-              >
-                Approve
-              </button>
-              <button
-                onClick={() => act('request_changes')}
-                disabled={busy}
-                className="w-full px-4 py-2 rounded-lg border border-border text-fg/80 text-[13px] font-medium hover:bg-app disabled:opacity-50 transition"
-              >
-                Request changes
-              </button>
+              {pendingAction === null ? (
+                <>
+                  <button
+                    onClick={() => { setPendingAction('approve'); setNote('') }}
+                    disabled={busy}
+                    className="w-full px-4 py-2 rounded-lg bg-ok text-white text-[13px] font-semibold hover:brightness-95 active:brightness-90 disabled:opacity-50 transition"
+                  >
+                    Approve
+                  </button>
+                  <button
+                    onClick={() => { setPendingAction('request_changes'); setNote('') }}
+                    disabled={busy}
+                    className="w-full px-4 py-2 rounded-lg border border-border text-fg/80 text-[13px] font-medium hover:bg-app disabled:opacity-50 transition"
+                  >
+                    Request changes
+                  </button>
+                </>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-[12px] text-fg/60">
+                    {pendingAction === 'approve' ? 'Approve with note' : 'Request changes'}
+                  </p>
+                  <textarea
+                    className="w-full rounded-lg bg-surface border border-border focus:outline-none focus:ring-2 focus:ring-iris/30 text-[13px] text-fg/90 placeholder:text-fg/35 px-3 py-2 resize-none"
+                    rows={3}
+                    placeholder="Add a note (optional)…"
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                  />
+                  <button
+                    onClick={submitWithNote}
+                    disabled={busy}
+                    className={pendingAction === 'approve'
+                      ? 'w-full px-4 py-2 rounded-lg bg-ok text-white text-[13px] font-semibold hover:brightness-95 active:brightness-90 disabled:opacity-50 transition'
+                      : 'w-full px-4 py-2 rounded-lg border border-border text-fg/80 text-[13px] font-medium hover:bg-app disabled:opacity-50 transition'}
+                  >
+                    {pendingAction === 'approve' ? 'Approve' : 'Request changes'}
+                  </button>
+                  <button
+                    onClick={() => { setPendingAction(null); setNote('') }}
+                    className="w-full px-4 py-2 rounded-lg border border-border text-fg/55 text-[13px] font-medium hover:bg-app transition"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
             </>
           )}
           {(meStatus === 'approved' || meStatus === 'changes_requested') && (
