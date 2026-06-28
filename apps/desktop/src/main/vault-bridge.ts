@@ -181,6 +181,11 @@ export async function createVault(
   } catch {
     /* ignore — vault is created; docs can be added later */
   }
+  await VaultManager.registerVault({
+    name: manager.config.name,
+    path: vaultDir,
+    last_opened: new Date().toISOString(),
+  })
   // Write approvers to workflows after doc import (outside try/catch so errors surface)
   if (approvers && approvers.length > 0) {
     const clean = [...new Set(approvers.map(a => a.trim()).filter(Boolean))]
@@ -191,11 +196,6 @@ export async function createVault(
       await writeVaultWorkflows(vaultDir, workflows)
     }
   }
-  await VaultManager.registerVault({
-    name: manager.config.name,
-    path: vaultDir,
-    last_opened: new Date().toISOString(),
-  })
   return { name: manager.config.name, path: vaultDir }
 }
 

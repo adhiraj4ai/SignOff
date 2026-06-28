@@ -52,6 +52,7 @@ export function VaultSwitcher({ onVaultSelected }: Props): React.ReactElement {
 
   async function handleConfirmSetup(): Promise<void> {
     if (!setupDir) return
+    if (!setupName.trim()) return
     const parsedApprovers = setupApprovers
       .split(/[,\n]/)
       .map((s) => s.trim())
@@ -61,12 +62,12 @@ export function VaultSwitcher({ onVaultSelected }: Props): React.ReactElement {
     const unsub = window.chuckle.vault.onSetupProgress((p) => setProgress(p))
     try {
       const vault = await window.chuckle.vault.create(setupDir, setupName.trim(), parsedApprovers)
-      unsub()
       setSetupDir(null)
       onVaultSelected(vault.path, vault.name)
     } catch (e) {
-      unsub()
       setError(`Setup failed: ${e instanceof Error ? e.message : String(e)}`)
+    } finally {
+      unsub()
       setBusy(false)
       setProgress(null)
     }
@@ -198,7 +199,8 @@ export function VaultSwitcher({ onVaultSelected }: Props): React.ReactElement {
             <div className="flex gap-2.5">
               <button
                 onClick={handleConfirmSetup}
-                className="flex-1 px-4 py-2.5 rounded-lg bg-iris text-white text-[13px] font-semibold hover:bg-iris-ink active:brightness-95 transition"
+                disabled={busy}
+                className="flex-1 px-4 py-2.5 rounded-lg bg-iris text-white text-[13px] font-semibold hover:bg-iris-ink active:brightness-95 disabled:opacity-50 transition"
               >
                 Create
               </button>
