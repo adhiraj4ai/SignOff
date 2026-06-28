@@ -22,7 +22,8 @@ export function applyReviewerAction(
   email: string,
   action: ReviewAction,
   now: string,
-  contentHash?: string
+  contentHash?: string,
+  message?: string | null
 ): ApprovalRecord {
   const reviewers = record.reviewers ?? {};
   const current = reviewers[email]?.status ?? "pending";
@@ -37,7 +38,7 @@ export function applyReviewerAction(
   return {
     ...record,
     reviewers: { ...reviewers, [email]: state },
-    history: [...(record.history ?? []), { action: HISTORY_ACTION[action], by: email, at: now, message: null, content_hash: contentHash }],
+    history: [...(record.history ?? []), { action: HISTORY_ACTION[action], by: email, at: now, message: message ?? null, content_hash: contentHash }],
   };
 }
 

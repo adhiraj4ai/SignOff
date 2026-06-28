@@ -44,6 +44,17 @@ describe("applyReviewerAction", () => {
     const r = applyReviewerAction(legacy, "a@o.c", "start_review", "t1");
     expect(r.reviewers["a@o.c"].status).toBe("in_review");
   });
+
+  it("approve records the message on the history entry", () => {
+    let r = applyReviewerAction(base(), "a@o.c", "start_review", "t1");
+    r = applyReviewerAction(r, "a@o.c", "approve", "t2", "hash", "LGTM");
+    expect(r.history.at(-1)?.message).toBe("LGTM");
+  });
+
+  it("start_review with no message leaves message: null", () => {
+    const r = applyReviewerAction(base(), "a@o.c", "start_review", "t1");
+    expect(r.history.at(-1)?.message).toBeNull();
+  });
 });
 
 describe("deriveStatus", () => {
