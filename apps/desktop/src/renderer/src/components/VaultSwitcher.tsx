@@ -15,6 +15,10 @@ export function VaultSwitcher({ onVaultSelected }: Props): React.ReactElement {
   const [vaults, setVaults] = useState<VaultInfo[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [setupDir, setSetupDir] = useState<string | null>(null)
+  const [setupName, setSetupName] = useState('')
+  const [setupApprovers, setSetupApprovers] = useState('')
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null)
 
   useEffect(() => {
     window.chuckle.vault.list().then(setVaults)
@@ -37,19 +41,42 @@ export function VaultSwitcher({ onVaultSelected }: Props): React.ReactElement {
     setVaults((prev) => (prev ? prev.filter((v) => v.path !== vaultPath) : prev))
   }
 
-  async function handleCreateVault(): Promise<void> {
+  async function handleSetupClick(): Promise<void> {
     setError(null)
     const dir = await window.chuckle.vault.selectDirectory()
     if (!dir) return
+    setSetupDir(dir)
+    setSetupName(basename(dir))
+    setSetupApprovers('')
+  }
+
+  async function handleConfirmSetup(): Promise<void> {
+    if (!setupDir) return
+    const parsedApprovers = setupApprovers
+      .split(/[,\n]/)
+      .map((s) => s.trim())
+      .filter(Boolean)
     setBusy(true)
+    setProgress(null)
+    const unsub = window.chuckle.vault.onSetupProgress((p) => setProgress(p))
     try {
-      const vault = await window.chuckle.vault.create(dir, basename(dir))
+      const vault = await window.chuckle.vault.create(setupDir, setupName.trim(), parsedApprovers)
+      unsub()
+      setSetupDir(null)
       onVaultSelected(vault.path, vault.name)
     } catch (e) {
+      unsub()
       setError(`Setup failed: ${e instanceof Error ? e.message : String(e)}`)
-    } finally {
       setBusy(false)
+      setProgress(null)
     }
+  }
+
+  function handleCancelSetup(): void {
+    setSetupDir(null)
+    setSetupName('')
+    setSetupApprovers('')
+    setError(null)
   }
 
   if (vaults === null) {
@@ -112,27 +139,103 @@ export function VaultSwitcher({ onVaultSelected }: Props): React.ReactElement {
           </div>
         )}
 
-        <div className="flex gap-2.5">
-          <button
-            onClick={handleCreateVault}
-            disabled={busy}
-            className="flex-1 px-4 py-2.5 rounded-lg bg-iris text-white text-[13px] font-semibold hover:bg-iris-ink active:brightness-95 disabled:opacity-50 transition"
-          >
-            {busy ? 'Setting up…' : 'Set up in a project'}
-          </button>
-          <button
-            onClick={handleOpenVault}
-            disabled={busy}
-            className="flex-1 px-4 py-2.5 rounded-lg border border-border bg-surface text-fg/80 text-[13px] font-medium hover:bg-app disabled:opacity-50 transition"
-          >
-            Open
-          </button>
-        </div>
-        <p className="mt-3 text-[12px] text-fg/40 leading-relaxed">
-          Setup picks your project folder and creates a{' '}
-          <span className="font-mono text-fg/60">.signoff/</span> vault inside it — its own git repo,
-          kept out of the project&apos;s own git.
-        </p>
+        {busy ? (
+          <div className="rounded-xl border border-border bg-surface/60 px-5 py-6">
+            {progress && progress.total > 0 ? (
+              <>
+                <div
+                  role="progressbar"
+                  aria-valuenow={progress.done}
+                  aria-valuemin={0}
+                  aria-valuemax={progress.total}
+                  className="h-1.5 rounded-full bg-border overflow-hidden"
+                >
+                  <div
+                    className="h-full bg-iris transition-all"
+                    style={{ width: `${(progress.done / progress.total) * 100}%` }}
+                  />
+                </div>
+                <p className="text-[12px] text-fg/50 mt-1">
+                  Configuring {progress.done} of {progress.total}…
+                </p>
+              </>
+            ) : (
+              <p className="text-[13px] text-fg/50 text-center">Setting up…</p>
+            )}
+          </div>
+        ) : setupDir !== null ? (
+          <div className="rounded-xl border border-border bg-surface px-5 py-5 flex flex-col gap-4">
+            <div className="flex flex-col gap-1">
+              <label htmlFor="setup-project-name" className="text-[11px] font-semibold text-fg/50 uppercase tracking-wide">
+                Project name
+              </label>
+              <input
+                id="setup-project-name"
+                aria-label="Project name"
+                type="text"
+                value={setupName}
+                onChange={(e) => setSetupName(e.target.value)}
+                className="w-full rounded-lg border border-border bg-surface text-fg/80 px-3 py-2 text-[13px] focus:outline-none focus:ring-1 focus:ring-iris"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label htmlFor="setup-approvers" className="text-[11px] font-semibold text-fg/50 uppercase tracking-wide">
+                Approvers
+              </label>
+              <textarea
+                id="setup-approvers"
+                aria-label="Approvers"
+                placeholder="lead@example.com, arch@example.com"
+                value={setupApprovers}
+                onChange={(e) => setSetupApprovers(e.target.value)}
+                rows={3}
+                className="w-full rounded-lg border border-border bg-surface text-fg/80 px-3 py-2 text-[13px] resize-none focus:outline-none focus:ring-1 focus:ring-iris"
+              />
+              <p className="text-[11.5px] text-fg/40 leading-snug">
+                Approvers sign off using their git email — leave empty to let anyone approve.
+              </p>
+            </div>
+            <div className="flex gap-2.5">
+              <button
+                onClick={handleConfirmSetup}
+                className="flex-1 px-4 py-2.5 rounded-lg bg-iris text-white text-[13px] font-semibold hover:bg-iris-ink active:brightness-95 transition"
+              >
+                Create
+              </button>
+              <button
+                onClick={handleCancelSetup}
+                className="flex-1 px-4 py-2.5 rounded-lg border border-border bg-surface text-fg/80 text-[13px] font-medium hover:bg-app transition"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="flex gap-2.5">
+              <button
+                onClick={handleSetupClick}
+                disabled={busy}
+                className="flex-1 px-4 py-2.5 rounded-lg bg-iris text-white text-[13px] font-semibold hover:bg-iris-ink active:brightness-95 disabled:opacity-50 transition"
+              >
+                Set up in a project
+              </button>
+              <button
+                onClick={handleOpenVault}
+                disabled={busy}
+                className="flex-1 px-4 py-2.5 rounded-lg border border-border bg-surface text-fg/80 text-[13px] font-medium hover:bg-app disabled:opacity-50 transition"
+              >
+                Open
+              </button>
+            </div>
+            <p className="mt-3 text-[12px] text-fg/40 leading-relaxed">
+              Setup picks your project folder and creates a{' '}
+              <span className="font-mono text-fg/60">.signoff/</span> vault inside it — its own git repo,
+              kept out of the project&apos;s own git.
+            </p>
+          </>
+        )}
+
         {error && (
           <p className="mt-3 text-[12.5px] text-stop bg-stop-soft border border-stop/20 rounded-lg px-3 py-2">
             {error}
