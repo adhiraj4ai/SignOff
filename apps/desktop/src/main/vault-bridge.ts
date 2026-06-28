@@ -124,38 +124,72 @@ async function walkMarkdown(dir: string): Promise<string[]> {
 
 /** Detect the project's existing docs (docs/ and .superpowers/) and register each
  *  markdown file in the vault manifest by project-relative path — no copy made. */
-async function importProjectDocs(projectRoot: string, vaultDir: string): Promise<number> {
+async function importProjectDocs(
+  projectRoot: string,
+  vaultDir: string,
+  onProgress?: (done: number, total: number) => void
+): Promise<number> {
   const { name, email } = await resolveVaultAuthor(vaultDir)
   const vault = await VaultManager.open(vaultDir)
   const cfgRoots = vault.config.doc_roots ?? ['docs', '.superpowers']
-  let count = 0
+  // Collect all markdown files upfront so total is known before processing
+  const allFiles: string[] = []
   for (const root of cfgRoots) {
-    for (const file of await walkMarkdown(path.join(projectRoot, root))) {
-      try {
-        const rel = path.relative(projectRoot, file).split(path.sep).join('/')
-        const type = classifyDoc(rel)
-        const feature = inferFeatureName(path.basename(file))
-        if (!feature) continue
-        await vault.submitForReview(feature, type, rel, email, name)
-        count++
-      } catch {
-        /* skip a doc that fails to import; setup still completes */
+    allFiles.push(...(await walkMarkdown(path.join(projectRoot, root))))
+  }
+  const total = allFiles.length
+  if (total === 0) {
+    if (onProgress) onProgress(0, 0)
+    return 0
+  }
+  let count = 0
+  let done = 0
+  for (const file of allFiles) {
+    try {
+      const rel = path.relative(projectRoot, file).split(path.sep).join('/')
+      const type = classifyDoc(rel)
+      const feature = inferFeatureName(path.basename(file))
+      if (!feature) {
+        done++
+        if (onProgress) onProgress(done, total)
+        continue
       }
+      await vault.submitForReview(feature, type, rel, email, name)
+      count++
+    } catch {
+      /* skip a doc that fails to import; setup still completes */
     }
+    done++
+    if (onProgress) onProgress(done, total)
   }
   return count
 }
 
-export async function createVault(projectRoot: string, name: string): Promise<VaultOpenResult> {
+export async function createVault(
+  projectRoot: string,
+  name: string,
+  approvers?: string[],
+  onProgress?: (done: number, total: number) => void
+): Promise<VaultOpenResult> {
   const vaultDir = path.join(projectRoot, VAULT_DIR)
   const manager = await VaultManager.create(vaultDir, name)
   await ensureGitignored(projectRoot)
   // Detect and register the project's existing docs so the vault isn't empty.
   // Best-effort: a doc-import failure must not abort setup.
   try {
-    await importProjectDocs(projectRoot, vaultDir)
+    await importProjectDocs(projectRoot, vaultDir, onProgress)
   } catch {
     /* ignore — vault is created; docs can be added later */
+  }
+  // Write approvers to workflows after doc import (outside try/catch so errors surface)
+  if (approvers && approvers.length > 0) {
+    const clean = [...new Set(approvers.map(a => a.trim()).filter(Boolean))]
+    if (clean.length > 0) {
+      const workflows = await readWorkflows(vaultDir)
+      workflows.spec.required_approvers = clean
+      workflows.plan.required_approvers = clean
+      await writeVaultWorkflows(vaultDir, workflows)
+    }
   }
   await VaultManager.registerVault({
     name: manager.config.name,

@@ -297,3 +297,28 @@ describe('readProjectClaudeMd', () => {
     expect(await readProjectClaudeMd(vaultPath)).toContain('# Project rules')
   })
 })
+
+describe('createVault with approvers', () => {
+  it('writes approvers to both spec and plan workflows', async () => {
+    const projectRoot = path.join(tmpDir, 'approver-proj')
+    await fs.mkdir(projectRoot, { recursive: true })
+    const result = await createVault(projectRoot, 'p', ['lead@o.c', 'arch@o.c'])
+    const workflows = await readVaultWorkflows(result.path)
+    expect(workflows.spec.required_approvers).toEqual(['lead@o.c', 'arch@o.c'])
+    expect(workflows.plan.required_approvers).toEqual(['lead@o.c', 'arch@o.c'])
+  })
+})
+
+describe('createVault onProgress', () => {
+  it('calls onProgress with final done===total when docs exist', async () => {
+    const projectRoot = path.join(tmpDir, 'progress-test')
+    await fs.mkdir(path.join(projectRoot, 'docs'), { recursive: true })
+    await fs.writeFile(path.join(projectRoot, 'docs', 'spec-one.md'), '# spec')
+    await fs.writeFile(path.join(projectRoot, 'docs', 'spec-two.md'), '# spec2')
+    const calls: Array<{ done: number; total: number }> = []
+    await createVault(projectRoot, 'progress-proj', [], (done, total) => calls.push({ done, total }))
+    expect(calls.length).toBeGreaterThan(0)
+    const last = calls[calls.length - 1]
+    expect(last.done).toBe(last.total)
+  })
+})
