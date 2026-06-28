@@ -5,7 +5,12 @@ const api: ChuckleAPI = {
   vault: {
     list: () => ipcRenderer.invoke('vault:list'),
     remove: (vaultPath) => ipcRenderer.invoke('vault:remove', { vaultPath }),
-    create: (path, name) => ipcRenderer.invoke('vault:create', { path, name }),
+    create: (path, name, approvers) => ipcRenderer.invoke('vault:create', { path, name, approvers }),
+    onSetupProgress: (cb) => {
+      const listener = (_event: Electron.IpcRendererEvent, p: { done: number; total: number }) => cb(p)
+      ipcRenderer.on('vault:setup-progress', listener)
+      return () => ipcRenderer.removeListener('vault:setup-progress', listener)
+    },
     openExisting: (path) => ipcRenderer.invoke('vault:open-existing', { path }),
     selectDirectory: () => ipcRenderer.invoke('vault:select-directory'),
     sync: (vaultPath) => ipcRenderer.invoke('vault:sync', { vaultPath }),

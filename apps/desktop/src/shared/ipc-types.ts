@@ -76,12 +76,14 @@ export type IpcChannels =
   | 'project:read-claude-md'
   | 'workflows:read' | 'workflows:write'
   | 'app:open-external'
+  | 'vault:setup-progress'
 
 export interface ChuckleAPI {
   vault: {
     list(): Promise<VaultInfo[]>
     remove(vaultPath: string): Promise<void>
-    create(projectRoot: string, name: string): Promise<VaultOpenResult>
+    create(projectRoot: string, name: string, approvers?: string[]): Promise<VaultOpenResult>
+    onSetupProgress(cb: (p: { done: number; total: number }) => void): () => void
     openExisting(path: string): Promise<VaultOpenResult>
     selectDirectory(): Promise<string | null>
     sync(vaultPath: string): Promise<void>

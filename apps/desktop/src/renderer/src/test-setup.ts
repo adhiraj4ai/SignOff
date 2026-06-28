@@ -16,6 +16,7 @@ const mockChuckle: ChuckleAPI = {
     push: vi.fn(),
     publishBranch: vi.fn(),
     author: vi.fn(),
+    onSetupProgress: vi.fn().mockReturnValue(() => {}),
   },
   features: {
     list: vi.fn(),
