@@ -9,11 +9,11 @@ function record(reviewers: ApprovalRecord['reviewers'], status: ApprovalRecord['
 }
 beforeEach(() => {
   vi.resetAllMocks()
-  vi.mocked(window.chuckle.vault.author).mockResolvedValue({ name: 'Me', email: 'me@o.c' })
-  vi.mocked(window.chuckle.document.isStale).mockResolvedValue(false)
-  vi.mocked(window.chuckle.review.action).mockResolvedValue({ pushed: false })
-  vi.mocked(window.chuckle.vault.getRemote).mockResolvedValue(null)
-  vi.mocked(window.chuckle.project.readClaudeMd).mockResolvedValue(null)
+  vi.mocked(window.signoff.vault.author).mockResolvedValue({ name: 'Me', email: 'me@o.c' })
+  vi.mocked(window.signoff.document.isStale).mockResolvedValue(false)
+  vi.mocked(window.signoff.review.action).mockResolvedValue({ pushed: false })
+  vi.mocked(window.signoff.vault.getRemote).mockResolvedValue(null)
+  vi.mocked(window.signoff.project.readClaudeMd).mockResolvedValue(null)
 })
 
 it('shows Start review when the current reviewer is pending', async () => {
@@ -28,7 +28,7 @@ it('shows Approve + Request changes once in review', async () => {
 })
 
 it('a non-member cannot act', async () => {
-  vi.mocked(window.chuckle.vault.author).mockResolvedValue({ name: 'X', email: 'x@o.c' })
+  vi.mocked(window.signoff.vault.author).mockResolvedValue({ name: 'X', email: 'x@o.c' })
   render(<ReviewPanel vaultPath="/v" feature="f" type="spec" derivedStatus="pending" record={record({})} workflow={workflow} onActionComplete={() => {}} />)
   await waitFor(() => screen.getByText('me@o.c'))
   expect(screen.queryByRole('button', { name: /start review/i })).not.toBeInTheDocument()
@@ -127,7 +127,7 @@ describe('inline note composer for approve/request_changes', () => {
     await waitFor(() => screen.getByPlaceholderText(/note/i))
     fireEvent.change(screen.getByPlaceholderText(/note/i), { target: { value: 'my note' } })
     fireEvent.click(screen.getAllByRole('button', { name: /^approve$/i })[0])
-    await waitFor(() => expect(window.chuckle.review.action).toHaveBeenCalledWith('/v', 'f', 'spec', 'approve', 'my note'))
+    await waitFor(() => expect(window.signoff.review.action).toHaveBeenCalledWith('/v', 'f', 'spec', 'approve', 'my note'))
   })
 
   it('clicking Request changes then confirming with empty note calls with null', async () => {
@@ -145,7 +145,7 @@ describe('inline note composer for approve/request_changes', () => {
     await waitFor(() => screen.getByPlaceholderText(/note/i))
     // Leave textarea empty
     fireEvent.click(screen.getByRole('button', { name: /request changes/i }))
-    await waitFor(() => expect(window.chuckle.review.action).toHaveBeenCalledWith('/v', 'f', 'spec', 'request_changes', null))
+    await waitFor(() => expect(window.signoff.review.action).toHaveBeenCalledWith('/v', 'f', 'spec', 'request_changes', null))
   })
 
   it('Cancel closes the composer without submitting', async () => {
@@ -163,11 +163,11 @@ describe('inline note composer for approve/request_changes', () => {
     await waitFor(() => screen.getByPlaceholderText(/note/i))
     fireEvent.click(screen.getByRole('button', { name: /cancel/i }))
     await waitFor(() => screen.getByRole('button', { name: /^approve$/i }))
-    expect(window.chuckle.review.action).not.toHaveBeenCalled()
+    expect(window.signoff.review.action).not.toHaveBeenCalled()
   })
 
   it('keeps the composer open with the note and shows an error when review.action rejects', async () => {
-    vi.mocked(window.chuckle.review.action).mockRejectedValueOnce(new Error('only lead@o.c may review'))
+    vi.mocked(window.signoff.review.action).mockRejectedValueOnce(new Error('only lead@o.c may review'))
     render(
       <ReviewPanel vaultPath="/v" feature="f" type="spec" derivedStatus="in_review"
         record={record({ 'me@o.c': { status: 'in_review', at: 't' } })} workflow={workflow} onActionComplete={() => {}} />
@@ -243,7 +243,7 @@ describe('Reviewer roster with acted/awaiting status', () => {
 
 describe('Vault access section', () => {
   it('shows the vault clone URL for reviewers when a remote is set', async () => {
-    vi.mocked(window.chuckle.vault.getRemote).mockResolvedValue('git@github.com:org/proj-signoff.git')
+    vi.mocked(window.signoff.vault.getRemote).mockResolvedValue('git@github.com:org/proj-signoff.git')
     render(
       <ReviewPanel vaultPath="/v" feature="user-auth" type="spec" derivedStatus="pending" record={record({})} workflow={workflow} onActionComplete={() => {}} />
     )
@@ -252,7 +252,7 @@ describe('Vault access section', () => {
   })
 
   it('shows a configure hint when no remote is set', async () => {
-    vi.mocked(window.chuckle.vault.getRemote).mockResolvedValue(null)
+    vi.mocked(window.signoff.vault.getRemote).mockResolvedValue(null)
     render(
       <ReviewPanel vaultPath="/v" feature="user-auth" type="spec" derivedStatus="pending" record={record({})} workflow={workflow} onActionComplete={() => {}} />
     )
@@ -260,7 +260,7 @@ describe('Vault access section', () => {
   })
 
   it('shows Project CLAUDE.md detected when readClaudeMd returns content', async () => {
-    vi.mocked(window.chuckle.project.readClaudeMd).mockResolvedValue('# Project instructions')
+    vi.mocked(window.signoff.project.readClaudeMd).mockResolvedValue('# Project instructions')
     render(
       <ReviewPanel vaultPath="/v" feature="user-auth" type="spec" derivedStatus="pending" record={record({})} workflow={workflow} onActionComplete={() => {}} />
     )
@@ -268,7 +268,7 @@ describe('Vault access section', () => {
   })
 
   it('does not show CLAUDE.md indicator when readClaudeMd returns null', async () => {
-    vi.mocked(window.chuckle.project.readClaudeMd).mockResolvedValue(null)
+    vi.mocked(window.signoff.project.readClaudeMd).mockResolvedValue(null)
     render(
       <ReviewPanel vaultPath="/v" feature="user-auth" type="spec" derivedStatus="pending" record={record({})} workflow={workflow} onActionComplete={() => {}} />
     )

@@ -1,5 +1,5 @@
 {
-  "name": "@chuckle/vault-core",
+  "name": "@signoff/vault-core",
   "version": "0.1.0",
   "type": "module",
   "main": "./dist/index.js",

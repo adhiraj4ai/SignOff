@@ -2,14 +2,14 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import fs from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
-import { VaultManager, readApproval } from "@chuckle/vault-core";
+import { VaultManager, readApproval } from "@signoff/vault-core";
 import { handleSubmit } from "../src/tools/submit.js";
 
 let tmpDir: string;
 let vaultPath: string;
 
 beforeEach(async () => {
-  tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "chuckle-mcp-submit-"));
+  tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "signoff-mcp-submit-"));
   // vaultPath is <tmp>/project/.signoff so project root is <tmp>/project/
   vaultPath = path.join(tmpDir, "project", ".signoff");
   process.env.CHUCKLE_HOME = path.join(tmpDir, ".chuckle");

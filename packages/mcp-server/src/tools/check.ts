@@ -3,7 +3,7 @@ import {
   pullLatest,
   type DocumentType,
   type CheckApprovalResult,
-} from "@chuckle/vault-core";
+} from "@signoff/vault-core";
 
 export async function handleCheck(
   vaultPath: string,

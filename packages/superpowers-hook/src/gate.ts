@@ -2,11 +2,11 @@ import path from "node:path";
 import {
   getApprovalStatus, readActiveFeature, readWorkflows, getWorkflowForType,
   readManifest, getFeatureDoc, manifestFeatureNames, type DocumentType,
-} from "@chuckle/vault-core";
+} from "@signoff/vault-core";
 import fs from "node:fs/promises";
 import type { PreToolUseEvent, GateDecision } from "./types.js";
 
-const CHUCKLE_DIR = ".signoff";
+const SIGNOFF_DIR = ".signoff";
 
 function isUnder(rel: string, base: string): boolean {
   return rel === base || rel.startsWith(base + "/");
@@ -32,10 +32,10 @@ export async function evaluateGate(event: PreToolUseEvent): Promise<GateDecision
     const target = targetPath(event);
     if (!target) return { allow: true };
 
-    const vaultPath = path.join(event.cwd, CHUCKLE_DIR);
+    const vaultPath = path.join(event.cwd, SIGNOFF_DIR);
     const rel = path.relative(event.cwd, path.resolve(event.cwd, target)).split(path.sep).join("/");
 
-    if (isUnder(rel, CHUCKLE_DIR)) return { allow: true };
+    if (isUnder(rel, SIGNOFF_DIR)) return { allow: true };
 
     const [manifest, docRoots] = await Promise.all([readManifest(vaultPath), readDocRoots(vaultPath)]);
 

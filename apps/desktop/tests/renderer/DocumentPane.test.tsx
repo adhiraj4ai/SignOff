@@ -16,9 +16,9 @@ const mockRecord: ApprovalRecord = {
 
 beforeEach(() => {
   vi.resetAllMocks()
-  vi.mocked(window.chuckle.document.read).mockResolvedValue('# User Auth Spec\n\nThis is the spec.')
-  vi.mocked(window.chuckle.document.getApproval).mockResolvedValue(mockRecord)
-  vi.mocked(window.chuckle.workflows.read).mockResolvedValue({
+  vi.mocked(window.signoff.document.read).mockResolvedValue('# User Auth Spec\n\nThis is the spec.')
+  vi.mocked(window.signoff.document.getApproval).mockResolvedValue(mockRecord)
+  vi.mocked(window.signoff.workflows.read).mockResolvedValue({
     spec: { required_approvers: ['arch@org.com'], min_approvals: 1 },
     plan: { required_approvers: ['lead@org.com'], min_approvals: 1 },
   })

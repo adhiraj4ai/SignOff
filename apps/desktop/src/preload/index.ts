@@ -1,7 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { ChuckleAPI } from '../shared/ipc-types.js'
+import type { SignoffAPI } from '../shared/ipc-types.js'
 
-const api: ChuckleAPI = {
+const api: SignoffAPI = {
   vault: {
     list: () => ipcRenderer.invoke('vault:list'),
     remove: (vaultPath) => ipcRenderer.invoke('vault:remove', { vaultPath }),
@@ -62,4 +62,4 @@ const api: ChuckleAPI = {
   openExternal: (url) => ipcRenderer.invoke('app:open-external', { url }),
 }
 
-contextBridge.exposeInMainWorld('chuckle', api)
+contextBridge.exposeInMainWorld('signoff', api)

@@ -1,4 +1,4 @@
-# Chuckle — Design Spec
+# SignOff — Design Spec
 
 **Date:** 2026-06-27  
 **Status:** Draft  
@@ -8,7 +8,7 @@
 
 ## Overview
 
-Chuckle is an open source markdown document review and approval platform for software development teams. It provides a structured approval gate for spec and plan documents produced by AI-assisted vibe coding tools (Claude Code, antigravity, etc.) before those documents are used to drive code generation. A bad spec fed to an AI tool is worse than no spec — Chuckle ensures the right people sign off before the AI proceeds.
+SignOff is an open source markdown document review and approval platform for software development teams. It provides a structured approval gate for spec and plan documents produced by AI-assisted vibe coding tools (Claude Code, antigravity, etc.) before those documents are used to drive code generation. A bad spec fed to an AI tool is worse than no spec — SignOff ensures the right people sign off before the AI proceeds.
 
 ---
 
@@ -20,7 +20,7 @@ When developers use superpowers skills (brainstorming, writing-plans) to produce
 
 ## Solution
 
-Chuckle has three components that work together:
+SignOff has three components that work together:
 
 1. **Electron desktop app** — Tolaria-style vault UI for rendering, organizing, and approving markdown documents
 2. **MCP server** — integrates with Claude Code to publish documents and gate code generation on approval status
@@ -37,7 +37,7 @@ Developer's project repo
           │
           │ Claude Code calls chuckle MCP → publish_document()
           ▼
-Chuckle Vault (dedicated git repo, one per project)
+SignOff Vault (dedicated git repo, one per project)
   features/<feature-name>/spec.md
   features/<feature-name>/spec.approval.json
   features/<feature-name>/plan.md
@@ -47,13 +47,13 @@ Chuckle Vault (dedicated git repo, one per project)
           │
           ├──────────────────────────────┐
           ▼                              ▼
-Chuckle Desktop App             Chuckle MCP Server
-(Electron, local)               (npx chuckle-mcp)
+SignOff Desktop App             SignOff MCP Server
+(Electron, local)               (npx signoff-mcp)
 Renders, organizes,             Claude Code queries
 approves, git commits           approval status here
 ```
 
-The vault git repo is the single source of truth. The desktop app and MCP server both read from and write to it. Reviewers access it by cloning the vault repo and opening it in the Chuckle desktop app.
+The vault git repo is the single source of truth. The desktop app and MCP server both read from and write to it. Reviewers access it by cloning the vault repo and opening it in the SignOff desktop app.
 
 ---
 
@@ -142,7 +142,7 @@ Every approval action is appended to the sidecar file — records are never over
 
 ## Multi-Vault Management
 
-Each project has its own vault (separate git repo). Chuckle manages multiple vaults via a local registry at `~/.chuckle/vaults.json`. The desktop app shows a vault switcher on launch (Obsidian-style).
+Each project has its own vault (separate git repo). SignOff manages multiple vaults via a local registry at `~/.chuckle/vaults.json`. The desktop app shows a vault switcher on launch (Obsidian-style).
 
 ```
 ~/.chuckle/vaults.json           # registry of all known vaults
@@ -163,7 +163,7 @@ Each project has its own vault (separate git repo). Chuckle manages multiple vau
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│ Chuckle — project-alpha          [Sync] [Settings]      │
+│ SignOff — project-alpha          [Sync] [Settings]      │
 ├──────────────────┬──────────────────────────────────────┤
 │ FEATURES         │  user-auth / spec                    │
 │                  │  ─────────────────────────────────── │
@@ -194,7 +194,7 @@ Each project has its own vault (separate git repo). Chuckle manages multiple vau
 
 ## MCP Server
 
-**Distribution:** `npm install -g chuckle-mcp`  
+**Distribution:** `npm install -g signoff-mcp`  
 **Runtime:** Node.js + TypeScript  
 
 ### Tools Exposed to Claude Code
@@ -221,7 +221,7 @@ list_pending() → Array<{ feature: string, type: string, submitted_at: string, 
 {
   "mcpServers": {
     "chuckle": {
-      "command": "chuckle-mcp",
+      "command": "signoff-mcp",
       "args": ["--vault", "/path/to/project-vault"]
     }
   }
@@ -232,19 +232,19 @@ list_pending() → Array<{ feature: string, type: string, submitted_at: string, 
 
 ## Superpowers Skills Integration
 
-Chuckle integrates at the end of two superpowers skills and at the start of implementation skills.
+SignOff integrates at the end of two superpowers skills and at the start of implementation skills.
 
 **After brainstorming writes spec:**
 ```
 → Claude Code calls publish_document(spec.md, feature_name, "spec")
-→ Surfaces message: "Spec published to Chuckle. Awaiting approval from solution-architect before proceeding."
+→ Surfaces message: "Spec published to SignOff. Awaiting approval from solution-architect before proceeding."
 → Halts — does not invoke writing-plans until approval is confirmed
 ```
 
 **After writing-plans writes plan:**
 ```
 → Claude Code calls publish_document(plan.md, feature_name, "plan")
-→ Surfaces message: "Plan published to Chuckle. Awaiting approval from team-lead before proceeding."
+→ Surfaces message: "Plan published to SignOff. Awaiting approval from team-lead before proceeding."
 → Halts — does not invoke implementation skill until approval is confirmed
 ```
 
@@ -262,17 +262,17 @@ Chuckle integrates at the end of two superpowers skills and at the start of impl
 ## First-Time Setup
 
 **Developer:**
-1. Install Chuckle desktop app
-2. `npm install -g chuckle-mcp`
-3. Open Chuckle → New Vault → enter project name, choose folder
+1. Install SignOff desktop app
+2. `npm install -g signoff-mcp`
+3. Open SignOff → New Vault → enter project name, choose folder
 4. Add MCP server to `.claude/settings.json`
-5. Configure approval workflows in Chuckle UI
+5. Configure approval workflows in SignOff UI
 6. Push vault repo to GitHub/GitLab (private)
 7. Share vault repo URL with reviewers
 
 **Reviewer (non-developer):**
-1. Install Chuckle desktop app
-2. Open Chuckle → Open Vault → clone from vault repo URL
+1. Install SignOff desktop app
+2. Open SignOff → Open Vault → clone from vault repo URL
 
 ---
 

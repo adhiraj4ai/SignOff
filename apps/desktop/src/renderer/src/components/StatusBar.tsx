@@ -69,10 +69,10 @@ export function StatusBar({
   useEffect(() => {
     let alive = true
     Promise.all([
-      window.chuckle.vault.getRemote(vaultPath),
-      window.chuckle.vault.status(vaultPath),
-      window.chuckle.vault.author(vaultPath),
-      window.chuckle.vault.syncState(vaultPath),
+      window.signoff.vault.getRemote(vaultPath),
+      window.signoff.vault.status(vaultPath),
+      window.signoff.vault.author(vaultPath),
+      window.signoff.vault.syncState(vaultPath),
     ]).then(([r, s, a, ss]) => {
       if (!alive) return
       setRemote(r)
@@ -109,10 +109,10 @@ export function StatusBar({
 
   async function contribute(): Promise<void> {
     if (noUpstream && remote) {
-      await window.chuckle.vault.publishBranch(vaultPath)
+      await window.signoff.vault.publishBranch(vaultPath)
       onSyncNow()
     } else if (repo.web) {
-      await window.chuckle.openExternal(repo.web)
+      await window.signoff.openExternal(repo.web)
     }
   }
 
@@ -200,7 +200,7 @@ export function StatusBar({
       <Sep />
 
       {/* Docs */}
-      <button className={cls} onClick={() => window.chuckle.openExternal(PROJECT_DOCS_URL)} title="Documentation">
+      <button className={cls} onClick={() => window.signoff.openExternal(PROJECT_DOCS_URL)} title="Documentation">
         <BookIcon />
         Docs
       </button>

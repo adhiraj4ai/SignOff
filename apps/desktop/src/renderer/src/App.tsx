@@ -38,8 +38,8 @@ function SelectedDocument({
   useEffect(() => {
     setRecord(undefined)
     Promise.all([
-      window.chuckle.document.getApproval(vaultPath, feature, type),
-      window.chuckle.workflows.read(vaultPath),
+      window.signoff.document.getApproval(vaultPath, feature, type),
+      window.signoff.workflows.read(vaultPath),
     ])
       .then(([r, w]) => {
         setRecord(r)
@@ -53,7 +53,7 @@ function SelectedDocument({
 
   useEffect(() => {
     setMarkdown('')
-    window.chuckle.document
+    window.signoff.document
       .read(vaultPath, feature, type)
       .then(setMarkdown)
       .catch(() => setMarkdown(''))
@@ -124,15 +124,15 @@ export function App(): React.ReactElement {
   const [syncKey, setSyncKey] = useState(0)
   const [toast, setToast] = useState<{ text: string; ok: boolean; conflict?: boolean } | null>(null)
   const [autoSyncMs, setAutoSyncMs] = useState<number>(
-    () => Number(localStorage.getItem('chuckle.autoSyncMs')) || 0
+    () => Number(localStorage.getItem('signoff.autoSyncMs')) || 0
   )
   const [theme, setTheme] = useState<'light' | 'dark'>(
-    () => (localStorage.getItem('chuckle.theme') === 'dark' ? 'dark' : 'light')
+    () => (localStorage.getItem('signoff.theme') === 'dark' ? 'dark' : 'light')
   )
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark')
-    localStorage.setItem('chuckle.theme', theme)
+    localStorage.setItem('signoff.theme', theme)
   }, [theme])
 
   const vaultPath = state?.vaultPath ?? null
@@ -148,12 +148,12 @@ export function App(): React.ReactElement {
     if (!vaultPath) return
     setSyncing(true)
     try {
-      await window.chuckle.vault.sync(vaultPath)
+      await window.signoff.vault.sync(vaultPath)
     } catch {
       /* surfaced by indicator */
     }
     try {
-      await window.chuckle.vault.push(vaultPath)
+      await window.signoff.vault.push(vaultPath)
     } catch {
       /* best-effort */
     }
@@ -164,7 +164,7 @@ export function App(): React.ReactElement {
 
   const setAutoSync = useCallback((ms: number) => {
     setAutoSyncMs(ms)
-    localStorage.setItem('chuckle.autoSyncMs', String(ms))
+    localStorage.setItem('signoff.autoSyncMs', String(ms))
   }, [])
 
   useEffect(() => {
@@ -250,7 +250,7 @@ export function App(): React.ReactElement {
             <button
               onClick={async () => {
                 setToast(null)
-                await window.chuckle.vault.sync(state.vaultPath)
+                await window.signoff.vault.sync(state.vaultPath)
                 refresh()
                 bump()
               }}

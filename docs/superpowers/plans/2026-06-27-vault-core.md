@@ -102,7 +102,7 @@ chuckle/
 ```json
 // packages/vault-core/package.json
 {
-  "name": "@chuckle/vault-core",
+  "name": "@signoff/vault-core",
   "version": "0.1.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -970,7 +970,7 @@ describe("VaultManager.open", () => {
   });
 
   it("throws if not a vault", async () => {
-    await expect(VaultManager.open(tmpDir)).rejects.toThrow("not a Chuckle vault");
+    await expect(VaultManager.open(tmpDir)).rejects.toThrow("not a SignOff vault");
   });
 });
 
@@ -1104,7 +1104,7 @@ export class VaultManager {
 
     await fs.writeFile(
       path.join(vaultPath, "README.md"),
-      `# ${name} — Chuckle Vault\n\nManaged by [Chuckle](https://github.com/chuckle).\n`
+      `# ${name} — SignOff Vault\n\nManaged by [SignOff](https://github.com/chuckle).\n`
     );
 
     await initVaultRepo(vaultPath);
@@ -1119,7 +1119,7 @@ export class VaultManager {
       const config = JSON.parse(raw) as VaultConfig;
       return new VaultManager(vaultPath, config);
     } catch {
-      throw new Error(`${vaultPath} is not a Chuckle vault (missing .chuckle/config.json)`);
+      throw new Error(`${vaultPath} is not a SignOff vault (missing .chuckle/config.json)`);
     }
   }
 
@@ -1220,7 +1220,7 @@ git commit -m "feat(vault-core): add VaultManager"
 - Modify: `packages/vault-core/src/index.ts`
 
 **Interfaces:**
-- Produces: complete public API — everything downstream packages import from `@chuckle/vault-core`
+- Produces: complete public API — everything downstream packages import from `@signoff/vault-core`
 
 - [ ] **Step 1: Write the full public API in index.ts**
 

@@ -14,7 +14,7 @@ import type {
   CommentEntry,
   GitErrorKind,
   SyncState,
-} from '@chuckle/vault-core'
+} from '@signoff/vault-core'
 
 export type {
   VaultInfo,
@@ -86,7 +86,7 @@ export type IpcChannels =
   | 'app:open-external'
   | 'vault:setup-progress'
 
-export interface ChuckleAPI {
+export interface SignoffAPI {
   vault: {
     list(): Promise<VaultInfo[]>
     remove(vaultPath: string): Promise<void>
@@ -133,9 +133,9 @@ export interface ChuckleAPI {
   openExternal(url: string): Promise<void>
 }
 
-// Augment Window so renderer TypeScript knows about window.chuckle
+// Augment Window so renderer TypeScript knows about window.signoff
 declare global {
   interface Window {
-    chuckle: ChuckleAPI
+    signoff: SignoffAPI
   }
 }

@@ -11,10 +11,10 @@ let vaultPath: string;
 let registryDir: string;
 
 beforeEach(async () => {
-  tmp = await fs.mkdtemp(path.join(os.tmpdir(), "chuckle-vault-"));
+  tmp = await fs.mkdtemp(path.join(os.tmpdir(), "signoff-vault-"));
   vaultPath = path.join(tmp, "project", ".signoff");
   await fs.mkdir(vaultPath, { recursive: true });
-  registryDir = await fs.mkdtemp(path.join(os.tmpdir(), "chuckle-registry-"));
+  registryDir = await fs.mkdtemp(path.join(os.tmpdir(), "signoff-registry-"));
   process.env.CHUCKLE_HOME = registryDir;
 });
 
@@ -68,7 +68,7 @@ describe("VaultManager.open", () => {
   });
 
   it("throws if not a vault", async () => {
-    await expect(VaultManager.open(vaultPath)).rejects.toThrow("not a Chuckle vault");
+    await expect(VaultManager.open(vaultPath)).rejects.toThrow("not a SignOff vault");
   });
 });
 

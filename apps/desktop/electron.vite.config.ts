@@ -8,7 +8,7 @@ export default defineConfig({
     // packaged app is self-contained (no node_modules resolution at runtime —
     // avoids monorepo hoisting/symlink packaging pain). simple-git is pure JS
     // that shells out to the system `git`, so it bundles cleanly.
-    plugins: [externalizeDepsPlugin({ exclude: ['@chuckle/vault-core', 'simple-git'] })],
+    plugins: [externalizeDepsPlugin({ exclude: ['@signoff/vault-core', 'simple-git'] })],
     resolve: {
       alias: { '@shared': resolve('src/shared') },
     },

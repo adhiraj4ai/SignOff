@@ -15,7 +15,7 @@ import os from "node:os";
 let tmpDir: string;
 
 beforeEach(async () => {
-  tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "chuckle-approval-"));
+  tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "signoff-approval-"));
   await fs.mkdir(path.join(tmpDir, "approvals"), { recursive: true });
 });
 

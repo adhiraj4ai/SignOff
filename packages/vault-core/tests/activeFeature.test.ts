@@ -7,7 +7,7 @@ import { writeActiveFeature, readActiveFeature } from "../src/activeFeature.js";
 let projectRoot: string;
 
 beforeEach(async () => {
-  projectRoot = await fs.mkdtemp(path.join(os.tmpdir(), "chuckle-ptr-test-"));
+  projectRoot = await fs.mkdtemp(path.join(os.tmpdir(), "signoff-ptr-test-"));
 });
 
 afterEach(async () => {

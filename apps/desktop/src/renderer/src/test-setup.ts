@@ -1,8 +1,8 @@
 import { vi } from 'vitest'
 import '@testing-library/jest-dom'
-import type { ChuckleAPI } from '@shared/ipc-types'
+import type { SignoffAPI } from '@shared/ipc-types'
 
-const mockChuckle: ChuckleAPI = {
+const mockSignoff: SignoffAPI = {
   vault: {
     list: vi.fn(),
     remove: vi.fn(),
@@ -49,7 +49,7 @@ const mockChuckle: ChuckleAPI = {
   openExternal: vi.fn(),
 }
 
-Object.defineProperty(window, 'chuckle', {
-  value: mockChuckle,
+Object.defineProperty(window, 'signoff', {
+  value: mockSignoff,
   writable: true,
 })

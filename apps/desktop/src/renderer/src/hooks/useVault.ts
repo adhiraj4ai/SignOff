@@ -34,7 +34,7 @@ export function useVault(): UseVaultReturn {
   const vaultPathRef = useRef<string | null>(null)
 
   const openVault = useCallback(async (path: string, name: string) => {
-    const features = await window.chuckle.features.list(path)
+    const features = await window.signoff.features.list(path)
     vaultPathRef.current = path
     setState({ vaultPath: path, vaultName: name, features, active: null })
   }, [])
@@ -59,14 +59,14 @@ export function useVault(): UseVaultReturn {
 
   const refresh = useCallback(async () => {
     if (!vaultPathRef.current) return
-    const features = await window.chuckle.features.list(vaultPathRef.current)
+    const features = await window.signoff.features.list(vaultPathRef.current)
     setState((prev) => (prev ? { ...prev, features } : prev))
   }, [])
 
   const sync = useCallback(async () => {
     if (!vaultPathRef.current) return
-    await window.chuckle.vault.sync(vaultPathRef.current)
-    const features = await window.chuckle.features.list(vaultPathRef.current)
+    await window.signoff.vault.sync(vaultPathRef.current)
+    const features = await window.signoff.features.list(vaultPathRef.current)
     setState((prev) => (prev ? { ...prev, features } : prev))
   }, [])
 

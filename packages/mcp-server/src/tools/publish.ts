@@ -3,7 +3,7 @@ import {
   writeActiveFeature,
   type DocumentType,
   type PublishResult,
-} from "@chuckle/vault-core";
+} from "@signoff/vault-core";
 import { resolveGitAuthor } from "./git-author.js";
 
 export async function handlePublish(

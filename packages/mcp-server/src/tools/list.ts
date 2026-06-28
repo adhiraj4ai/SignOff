@@ -1,4 +1,4 @@
-import { readApproval, listFeatureNames, type DocumentType } from "@chuckle/vault-core";
+import { readApproval, listFeatureNames, type DocumentType } from "@signoff/vault-core";
 
 export interface PendingItem {
   feature: string;

@@ -62,7 +62,7 @@ npm install
 npm run build          # build all workspaces
 
 # run the desktop app in dev mode
-npm run dev -w @chuckle/desktop
+npm run dev -w @signoff/desktop
 
 # run the test suites
 npm test

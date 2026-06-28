@@ -95,7 +95,7 @@ export class VaultManager {
       const config = JSON.parse(raw) as VaultConfig;
       return new VaultManager(vaultPath, config);
     } catch {
-      throw new Error(`${vaultPath} is not a Chuckle vault (missing config.json)`);
+      throw new Error(`${vaultPath} is not a SignOff vault (missing config.json)`);
     }
   }
 

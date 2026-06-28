@@ -15,12 +15,12 @@ export function useAutoSync(
 
     async function tick(): Promise<void> {
       try {
-        await window.chuckle.vault.sync(vaultPath as string)
+        await window.signoff.vault.sync(vaultPath as string)
       } catch {
         /* offline / no upstream — status indicator reflects it */
       }
       try {
-        await window.chuckle.vault.push(vaultPath as string)
+        await window.signoff.vault.push(vaultPath as string)
       } catch {
         /* best-effort */
       }

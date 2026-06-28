@@ -17,7 +17,7 @@ async function main(): Promise<void> {
     event = JSON.parse(raw) as PreToolUseEvent;
   } catch {
     // Fail closed: unreadable/malformed event blocks the tool call.
-    process.stderr.write("🔒 Chuckle: could not parse hook event. Blocking by default.\n");
+    process.stderr.write("🔒 SignOff: could not parse hook event. Blocking by default.\n");
     process.exit(2);
     return;
   }
@@ -26,11 +26,11 @@ async function main(): Promise<void> {
   if (decision.allow) {
     process.exit(0);
   }
-  process.stderr.write((decision.reason ?? "🔒 Chuckle: blocked.") + "\n");
+  process.stderr.write((decision.reason ?? "🔒 SignOff: blocked.") + "\n");
   process.exit(2);
 }
 
 void main().catch(() => {
-  process.stderr.write("🔒 Chuckle: unexpected error. Blocking by default.\n");
+  process.stderr.write("🔒 SignOff: unexpected error. Blocking by default.\n");
   process.exit(2);
 });

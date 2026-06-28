@@ -3,7 +3,7 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import os from 'node:os'
 import { simpleGit } from 'simple-git'
-import { VaultManager } from '@chuckle/vault-core'
+import { VaultManager } from '@signoff/vault-core'
 import {
   listVaults,
   createVault,
@@ -46,7 +46,7 @@ async function seedDoc(feature: string, type: 'spec' | 'plan', content = `# ${fe
 }
 
 beforeEach(async () => {
-  tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'chuckle-desktop-test-'))
+  tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'signoff-desktop-test-'))
   // Vault is at <tmpDir>/project/.signoff so project root is <tmpDir>/project
   await fs.mkdir(path.join(tmpDir, 'project'), { recursive: true })
   vaultPath = path.join(tmpDir, 'project', '.signoff')
@@ -65,7 +65,7 @@ afterEach(async () => {
 describe('listVaults', () => {
   it('returns empty array on fresh registry', async () => {
     // createVault auto-registers; create a clean env
-    const cleanDir = await fs.mkdtemp(path.join(os.tmpdir(), 'chuckle-list-'))
+    const cleanDir = await fs.mkdtemp(path.join(os.tmpdir(), 'signoff-list-'))
     process.env.CHUCKLE_HOME = path.join(cleanDir, '.chuckle')
     const result = await listVaults()
     expect(result).toEqual([])

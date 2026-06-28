@@ -1,11 +1,11 @@
 {
-  "name": "@chuckle/mcp-server",
+  "name": "@signoff/mcp-server",
   "version": "0.1.0",
-  "description": "Chuckle MCP server — publish and gate documents in Claude Code",
+  "description": "SignOff MCP server — publish and gate documents in Claude Code",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "chuckle-mcp": "dist/index.js"
+    "signoff-mcp": "dist/index.js"
   },
   "scripts": {
     "build": "tsc",
@@ -15,7 +15,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@chuckle/vault-core": "*",
+    "@signoff/vault-core": "*",
     "@modelcontextprotocol/sdk": "^1.12.3",
     "simple-git": "^3.27.0"
   },

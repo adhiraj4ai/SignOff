@@ -83,7 +83,7 @@ export function ReviewPanel({
 
   useEffect(() => {
     let alive = true
-    window.chuckle.vault.author(vaultPath).then((a) => {
+    window.signoff.vault.author(vaultPath).then((a) => {
       if (alive) setAuthorEmail(a.email)
     })
     return () => { alive = false }
@@ -91,10 +91,10 @@ export function ReviewPanel({
 
   useEffect(() => {
     let alive = true
-    window.chuckle.vault.getRemote(vaultPath).then((r) => {
+    window.signoff.vault.getRemote(vaultPath).then((r) => {
       if (alive) setVaultRemote(r)
     })
-    window.chuckle.project.readClaudeMd(vaultPath).then((c) => {
+    window.signoff.project.readClaudeMd(vaultPath).then((c) => {
       if (alive) setHasClaudeMd(c !== null)
     })
     return () => { alive = false }
@@ -112,7 +112,7 @@ export function ReviewPanel({
     setBusy(true)
     setActionError(null)
     try {
-      const r = await window.chuckle.review.action(vaultPath, feature, type, action)
+      const r = await window.signoff.review.action(vaultPath, feature, type, action)
       onActionComplete(r)
     } catch (e) {
       setActionError(e instanceof Error ? e.message : String(e))
@@ -126,7 +126,7 @@ export function ReviewPanel({
     setBusy(true)
     setActionError(null)
     try {
-      const r = await window.chuckle.review.action(vaultPath, feature, type, pendingAction, note.trim() || null)
+      const r = await window.signoff.review.action(vaultPath, feature, type, pendingAction, note.trim() || null)
       setPendingAction(null); setNote('')
       onActionComplete(r)
     } catch (e) {

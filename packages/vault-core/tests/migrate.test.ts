@@ -8,7 +8,7 @@ import { readApproval } from "../src/approval.js";
 let tmpDir: string;
 
 beforeEach(async () => {
-  tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "chuckle-migrate-"));
+  tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "signoff-migrate-"));
 });
 
 afterEach(async () => {

@@ -10,7 +10,7 @@ import { handleList } from "./tools/list.js";
 
 export function createServer(vaultPath: string): Server {
   const server = new Server(
-    { name: "chuckle", version: "0.1.0" },
+    { name: "signoff", version: "0.1.0" },
     { capabilities: { tools: {} } }
   );
 

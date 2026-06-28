@@ -4,11 +4,11 @@ import { ReviewerSettings } from '@renderer/components/ReviewerSettings'
 
 beforeEach(() => {
   vi.resetAllMocks()
-  vi.mocked(window.chuckle.workflows.read).mockResolvedValue({
+  vi.mocked(window.signoff.workflows.read).mockResolvedValue({
     spec: { required_approvers: ['lead@org.com'], min_approvals: 1 },
     plan: { required_approvers: [], min_approvals: 1 },
   })
-  vi.mocked(window.chuckle.workflows.write).mockResolvedValue(undefined)
+  vi.mocked(window.signoff.workflows.write).mockResolvedValue(undefined)
 })
 
 describe('ReviewerSettings', () => {
@@ -18,7 +18,7 @@ describe('ReviewerSettings', () => {
     await waitFor(() => screen.getByDisplayValue('lead@org.com'))
     fireEvent.change(screen.getByLabelText(/spec approvers/i), { target: { value: 'lead@org.com, arch@org.com' } })
     fireEvent.click(screen.getByRole('button', { name: /save/i }))
-    await waitFor(() => expect(window.chuckle.workflows.write).toHaveBeenCalledWith('/v', expect.objectContaining({
+    await waitFor(() => expect(window.signoff.workflows.write).toHaveBeenCalledWith('/v', expect.objectContaining({
       spec: expect.objectContaining({ required_approvers: ['lead@org.com', 'arch@org.com'] }),
     })))
     await waitFor(() => expect(onClose).toHaveBeenCalled())

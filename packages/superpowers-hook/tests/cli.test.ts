@@ -36,7 +36,7 @@ beforeAll(async () => {
   await execFileAsync("npm", ["run", "build"], { cwd: path.join(here, "..") });
 }, 30_000);
 
-describe("chuckle-gate CLI", () => {
+describe("signoff-gate CLI", () => {
   it("exits 0 for an allowed target (spec doc)", async () => {
     const event = JSON.stringify({
       cwd: process.cwd(),
@@ -50,9 +50,9 @@ describe("chuckle-gate CLI", () => {
 
   it("exits 2 and prints a reason for a blocked target (code, no pointer)", async () => {
     const event = JSON.stringify({
-      cwd: "/tmp/no-such-chuckle-project",
+      cwd: "/tmp/no-such-signoff-project",
       tool_name: "Write",
-      tool_input: { file_path: "/tmp/no-such-chuckle-project/src/index.ts" },
+      tool_input: { file_path: "/tmp/no-such-signoff-project/src/index.ts" },
     });
     const { code, stderr } = await run(event);
     expect(code).toBe(2);

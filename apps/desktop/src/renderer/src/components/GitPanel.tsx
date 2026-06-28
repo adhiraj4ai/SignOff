@@ -44,9 +44,9 @@ export function GitPanel({ vaultPath, onClose }: Props): React.ReactElement {
 
   const refresh = useCallback(async () => {
     const [c, s, r] = await Promise.all([
-      window.chuckle.vault.log(vaultPath),
-      window.chuckle.vault.syncState(vaultPath),
-      window.chuckle.vault.getRemote(vaultPath),
+      window.signoff.vault.log(vaultPath),
+      window.signoff.vault.syncState(vaultPath),
+      window.signoff.vault.getRemote(vaultPath),
     ])
     setCommits(c)
     setSyncState(s)
@@ -60,7 +60,7 @@ export function GitPanel({ vaultPath, onClose }: Props): React.ReactElement {
   async function connectRemote(): Promise<void> {
     setBusy('connect')
     setConnectError(null)
-    const r = await window.chuckle.vault.connectRemote(vaultPath, connectUrl)
+    const r = await window.signoff.vault.connectRemote(vaultPath, connectUrl)
     if (r.ok) {
       setConnectUrl('')
       await refresh()
@@ -73,7 +73,7 @@ export function GitPanel({ vaultPath, onClose }: Props): React.ReactElement {
   async function push(): Promise<void> {
     setBusy('push')
     setNote(null)
-    const r = await window.chuckle.vault.push(vaultPath)
+    const r = await window.signoff.vault.push(vaultPath)
     if (r.ok) {
       setNote('Pushed to remote.')
     } else {
@@ -87,7 +87,7 @@ export function GitPanel({ vaultPath, onClose }: Props): React.ReactElement {
     setBusy('pull')
     setNote(null)
     try {
-      await window.chuckle.vault.sync(vaultPath)
+      await window.signoff.vault.sync(vaultPath)
       setNote('Pulled latest from remote.')
     } catch (e) {
       setNote(`Pull failed: ${e instanceof Error ? e.message : String(e)}`)
@@ -99,7 +99,7 @@ export function GitPanel({ vaultPath, onClose }: Props): React.ReactElement {
   async function publish(): Promise<void> {
     setBusy('push')
     setNote(null)
-    const r = await window.chuckle.vault.publishBranch(vaultPath)
+    const r = await window.signoff.vault.publishBranch(vaultPath)
     if (r.ok) {
       setNote('Published branch & set upstream.')
     } else {

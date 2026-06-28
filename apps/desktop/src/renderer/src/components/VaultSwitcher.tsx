@@ -24,15 +24,15 @@ export function VaultSwitcher({ onVaultSelected }: Props): React.ReactElement {
   const busyRef = useRef(false)
 
   useEffect(() => {
-    window.chuckle.vault.list().then(setVaults)
+    window.signoff.vault.list().then(setVaults)
   }, [])
 
   async function handleOpenVault(): Promise<void> {
     setError(null)
     try {
-      const dir = await window.chuckle.vault.selectDirectory()
+      const dir = await window.signoff.vault.selectDirectory()
       if (!dir) return
-      const vault = await window.chuckle.vault.openExisting(dir)
+      const vault = await window.signoff.vault.openExisting(dir)
       onVaultSelected(vault.path, vault.name)
     } catch (e) {
       setError(`Couldn't open that folder: ${e instanceof Error ? e.message : String(e)}`)
@@ -40,13 +40,13 @@ export function VaultSwitcher({ onVaultSelected }: Props): React.ReactElement {
   }
 
   async function handleRemove(vaultPath: string): Promise<void> {
-    await window.chuckle.vault.remove(vaultPath)
+    await window.signoff.vault.remove(vaultPath)
     setVaults((prev) => (prev ? prev.filter((v) => v.path !== vaultPath) : prev))
   }
 
   async function handleSetupClick(): Promise<void> {
     setError(null)
-    const dir = await window.chuckle.vault.selectDirectory()
+    const dir = await window.signoff.vault.selectDirectory()
     if (!dir) return
     setSetupDir(dir)
     setSetupName(basename(dir))
@@ -65,9 +65,9 @@ export function VaultSwitcher({ onVaultSelected }: Props): React.ReactElement {
     busyRef.current = true
     setBusy(true)
     setProgress(null)
-    const unsub = window.chuckle.vault.onSetupProgress((p) => setProgress(p)) ?? (() => {})
+    const unsub = window.signoff.vault.onSetupProgress((p) => setProgress(p)) ?? (() => {})
     try {
-      const vault = await window.chuckle.vault.create(setupDir, trimmedName, parsedApprovers)
+      const vault = await window.signoff.vault.create(setupDir, trimmedName, parsedApprovers)
       setSetupDir(null)
       onVaultSelected(vault.path, vault.name)
     } catch (e) {
@@ -107,9 +107,9 @@ export function VaultSwitcher({ onVaultSelected }: Props): React.ReactElement {
     busyRef.current = true
     setBusy(true)
     try {
-      const dir = await window.chuckle.vault.selectDirectory()
+      const dir = await window.signoff.vault.selectDirectory()
       if (!dir) return
-      const vault = await window.chuckle.vault.clone(url, dir)
+      const vault = await window.signoff.vault.clone(url, dir)
       setCloneOpen(false)
       onVaultSelected(vault.path, vault.name)
     } catch (e) {
@@ -143,7 +143,7 @@ export function VaultSwitcher({ onVaultSelected }: Props): React.ReactElement {
         {vaults.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border bg-surface/60 px-5 py-8 text-center mb-5">
             <p className="text-[13.5px] text-fg/55">
-              No projects yet. Set Signoff up in a project, or open an existing vault.
+              No projects yet. Set SignOff up in a project, or open an existing vault.
             </p>
           </div>
         ) : (

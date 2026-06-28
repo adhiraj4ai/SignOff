@@ -10,8 +10,8 @@ import {
   readManifest,
   writeManifest,
   setFeatureDoc,
-} from "@chuckle/vault-core";
-import type { ApprovalRecord } from "@chuckle/vault-core";
+} from "@signoff/vault-core";
+import type { ApprovalRecord } from "@signoff/vault-core";
 import { evaluateGate } from "../src/gate.js";
 
 let tmpDir: string;
@@ -59,12 +59,12 @@ function writeEvent(rel: string): { cwd: string; tool_name: string; tool_input: 
 }
 
 beforeEach(async () => {
-  tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "chuckle-gate-test-"));
+  tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "signoff-gate-test-"));
   projectRoot = path.join(tmpDir, "project");
   vaultPath = path.join(projectRoot, ".signoff");
-  process.env.CHUCKLE_HOME = path.join(tmpDir, ".chuckle-home");
+  process.env.CHUCKLE_HOME = path.join(tmpDir, ".signoff-home");
   await fs.mkdir(projectRoot, { recursive: true });
-  // Vault lives at projectRoot/.signoff — matches gate's CHUCKLE_DIR constant.
+  // Vault lives at projectRoot/.signoff — matches gate's SIGNOFF_DIR constant.
   await VaultManager.create(vaultPath, "test-project");
 });
 

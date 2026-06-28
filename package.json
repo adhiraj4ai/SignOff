@@ -1,5 +1,5 @@
 {
-  "name": "chuckle",
+  "name": "signoff",
   "private": true,
   "workspaces": [
     "packages/*",

@@ -44,7 +44,7 @@ import {
   type CommentsFile,
   type GitErrorKind,
   type SyncState,
-} from '@chuckle/vault-core'
+} from '@signoff/vault-core'
 import type { FeatureEntry, GitCommit, GitStatus, ReviewResult, VaultOpenResult } from '../shared/ipc-types.js'
 
 /** True when a remote is configured AND the branch tracks it. */

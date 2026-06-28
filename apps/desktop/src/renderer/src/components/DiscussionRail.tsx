@@ -36,7 +36,7 @@ function ThreadItem({
   const [posting, setPosting] = useState(false)
 
   async function handleResolve(): Promise<void> {
-    const result = await window.chuckle.comments.setResolved(vaultPath, feature, type, thread.id, !thread.resolved)
+    const result = await window.signoff.comments.setResolved(vaultPath, feature, type, thread.id, !thread.resolved)
     onRefresh(result)
   }
 
@@ -44,7 +44,7 @@ function ThreadItem({
     if (!replyBody.trim()) return
     setPosting(true)
     try {
-      const result = await window.chuckle.comments.addReply(vaultPath, feature, type, thread.id, replyBody.trim())
+      const result = await window.signoff.comments.addReply(vaultPath, feature, type, thread.id, replyBody.trim())
       onRefresh(result)
       setReplyBody('')
       setReplyOpen(false)
@@ -128,7 +128,7 @@ function ThreadGroup({
     if (!body.trim()) return
     setPosting(true)
     try {
-      const result = await window.chuckle.comments.addThread(vaultPath, feature, type, slug, line, body.trim())
+      const result = await window.signoff.comments.addThread(vaultPath, feature, type, slug, line, body.trim())
       onRefresh(result)
       setBody('')
       setComposerOpen(false)
@@ -204,7 +204,7 @@ export function DiscussionRail({ vaultPath, feature, type, markdown }: Props): R
 
   useEffect(() => {
     setCommentsFile(null)
-    window.chuckle.comments
+    window.signoff.comments
       .read(vaultPath, feature, type)
       .then(setCommentsFile)
       .catch(() => setCommentsFile({ version: 1, threads: [] }))

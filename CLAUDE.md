@@ -1,8 +1,8 @@
-# Chuckle — Project Instructions
+# SignOff — Project Instructions
 
 ## What this project is
 
-Chuckle is an open source markdown document review and approval platform for AI-assisted vibe coding. It gates spec and plan documents behind a human approval workflow before Claude Code is allowed to proceed with implementation.
+SignOff is an open source markdown document review and approval platform for AI-assisted vibe coding. It gates spec and plan documents behind a human approval workflow before Claude Code is allowed to proceed with implementation.
 
 Three components:
 - `packages/vault-core/` — shared git + approval logic (Node.js + TypeScript)

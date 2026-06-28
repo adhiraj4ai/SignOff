@@ -15,7 +15,7 @@ export function ReviewerSettings({ vaultPath, onClose }: Props): React.ReactElem
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    window.chuckle.workflows.read(vaultPath).then((w) => {
+    window.signoff.workflows.read(vaultPath).then((w) => {
       setWorkflows(w)
       setSpecApprovers(w.spec.required_approvers.join(', '))
       setSpecMin(w.spec.min_approvals)
@@ -33,7 +33,7 @@ export function ReviewerSettings({ vaultPath, onClose }: Props): React.ReactElem
       spec: { ...workflows.spec, required_approvers: parseEmails(specApprovers), min_approvals: specMin },
       plan: { ...workflows.plan, required_approvers: parseEmails(planApprovers), min_approvals: planMin },
     }
-    await window.chuckle.workflows.write(vaultPath, next)
+    await window.signoff.workflows.write(vaultPath, next)
     setSaving(false)
     onClose()
   }

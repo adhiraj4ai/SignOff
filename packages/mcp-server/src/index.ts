@@ -6,7 +6,7 @@ function parseVaultArg(argv: string[]): string {
   const idx = argv.indexOf("--vault");
   if (idx === -1 || idx + 1 >= argv.length) {
     process.stderr.write(
-      "Usage: chuckle-mcp --vault /path/to/vault\n"
+      "Usage: signoff-mcp --vault /path/to/vault\n"
     );
     process.exit(1);
   }

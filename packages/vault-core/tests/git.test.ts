@@ -11,7 +11,7 @@ import os from "node:os";
 let tmpDir: string;
 
 beforeEach(async () => {
-  tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "chuckle-git-"));
+  tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "signoff-git-"));
 });
 
 afterEach(async () => {
@@ -73,7 +73,7 @@ describe("initVaultRepo inside a parent repo", () => {
     const { simpleGit } = await import("simple-git");
     const { initVaultRepo } = await import("../src/git.js");
 
-    const parent = await fs.mkdtemp(path.join(os.tmpdir(), "chuckle-parent-"));
+    const parent = await fs.mkdtemp(path.join(os.tmpdir(), "signoff-parent-"));
     await simpleGit(parent).init();
     await fs.writeFile(path.join(parent, ".gitignore"), ".chuckle/\n");
     const vaultDir = path.join(parent, ".chuckle");

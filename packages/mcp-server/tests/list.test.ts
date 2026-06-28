@@ -7,7 +7,7 @@ import {
   writeApproval,
   appendHistory,
   readApproval,
-} from "@chuckle/vault-core";
+} from "@signoff/vault-core";
 import { handleList } from "../src/tools/list.js";
 
 let tmpDir: string;
@@ -22,7 +22,7 @@ async function submitDoc(feature: string, type: "spec" | "plan") {
 }
 
 beforeEach(async () => {
-  tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "chuckle-mcp-list-"));
+  tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "signoff-mcp-list-"));
   // vaultPath is <tmp>/project/.signoff so project root is <tmp>/project/
   vaultPath = path.join(tmpDir, "project", ".signoff");
   process.env.CHUCKLE_HOME = path.join(tmpDir, ".chuckle");

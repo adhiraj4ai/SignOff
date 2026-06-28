@@ -8,14 +8,14 @@ import {
   appendHistory,
   readApproval,
   hashContent,
-} from "@chuckle/vault-core";
+} from "@signoff/vault-core";
 import { handleCheck } from "../src/tools/check.js";
 
 let tmpDir: string;
 let vaultPath: string;
 
 beforeEach(async () => {
-  tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "chuckle-mcp-check-"));
+  tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "signoff-mcp-check-"));
   // vaultPath is <tmp>/project/.signoff so project root is <tmp>/project/
   vaultPath = path.join(tmpDir, "project", ".signoff");
   process.env.CHUCKLE_HOME = path.join(tmpDir, ".chuckle");

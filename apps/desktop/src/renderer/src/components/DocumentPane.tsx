@@ -134,7 +134,7 @@ export function DocumentPane({
   useEffect(() => {
     setContent(null)
     setView('read')
-    window.chuckle.document
+    window.signoff.document
       .read(vaultPath, feature, type)
       .then(setContent)
       .catch((err) => {
@@ -157,7 +157,7 @@ export function DocumentPane({
   async function save(): Promise<void> {
     setSaving(true)
     try {
-      const result = await window.chuckle.document.write(vaultPath, feature, type, draft)
+      const result = await window.signoff.document.write(vaultPath, feature, type, draft)
       setContent(draft)
       setView('read')
       onSaved?.(result)

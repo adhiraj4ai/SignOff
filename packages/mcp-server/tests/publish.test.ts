@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import fs from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
-import { VaultManager } from "@chuckle/vault-core";
+import { VaultManager } from "@signoff/vault-core";
 import { handlePublish } from "../src/tools/publish.js";
 
 let tmpDir: string;
@@ -10,7 +10,7 @@ let vaultPath: string;
 let projectRoot: string;
 
 beforeEach(async () => {
-  tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "chuckle-mcp-test-"));
+  tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "signoff-mcp-test-"));
   // vaultPath is <tmp>/project/.signoff so project root is <tmp>/project/
   vaultPath = path.join(tmpDir, "project", ".signoff");
   projectRoot = path.dirname(vaultPath);
