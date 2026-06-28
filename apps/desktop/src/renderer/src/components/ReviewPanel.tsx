@@ -30,11 +30,15 @@ function statusDot(status: Status): string {
 }
 
 function reviewerStatusLabel(status: ReviewerStatus): string {
-  if (status === 'pending') return 'Pending'
+  if (status === 'pending') return 'Awaiting review'
   if (status === 'in_review') return 'In review'
   if (status === 'approved') return 'Approved'
   if (status === 'changes_requested') return 'Changes requested'
-  return 'Pending'
+  return 'Awaiting review'
+}
+
+function formatReviewerDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
 function reviewerStatusPill(status: ReviewerStatus): string {
@@ -212,19 +216,49 @@ export function ReviewPanel({
       {/* Reviewers list */}
       {record !== undefined && reviewerList.length > 0 && (
         <div className="px-5 py-4 border-b border-border">
-          <h3 className="text-[11px] font-semibold text-fg/45 mb-2.5">Reviewers</h3>
+          <h3 className="text-[11px] font-semibold text-fg/45 mb-1.5">Reviewers</h3>
+          {(() => {
+            const approvedCount = reviewerList.filter(
+              (e) => record?.reviewers?.[e]?.status === 'approved'
+            ).length
+            const changesCount = reviewerList.filter(
+              (e) => record?.reviewers?.[e]?.status === 'changes_requested'
+            ).length
+            const total = reviewerList.length
+            return (
+              <p className="text-[11px] text-fg/45 mb-2.5">
+                {approvedCount} of {total} approved
+                {changesCount > 0 ? ` · ${changesCount} requested changes` : ''}
+              </p>
+            )
+          })()}
           <ul className="space-y-2">
-            {reviewerList.map((email) => {
-              const rs: ReviewerStatus = record?.reviewers?.[email]?.status ?? 'pending'
-              return (
-                <li key={email} className="flex items-center justify-between gap-2">
-                  <span className="text-[12px] text-fg/75 truncate">{email}</span>
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium whitespace-nowrap ${reviewerStatusPill(rs)}`}>
-                    {reviewerStatusLabel(rs)}
-                  </span>
-                </li>
-              )
-            })}
+            {[...reviewerList]
+              .sort((a, b) => {
+                const aActed = record?.reviewers?.[a] !== undefined && record?.reviewers?.[a]?.status !== 'pending'
+                const bActed = record?.reviewers?.[b] !== undefined && record?.reviewers?.[b]?.status !== 'pending'
+                if (aActed && !bActed) return -1
+                if (!aActed && bActed) return 1
+                return 0
+              })
+              .map((email) => {
+                const entry = record?.reviewers?.[email]
+                const rs: ReviewerStatus = entry?.status ?? 'pending'
+                const hasActed = entry !== undefined && rs !== 'pending'
+                return (
+                  <li key={email} className="flex items-center justify-between gap-2">
+                    <span className="text-[12px] text-fg/75 truncate">{email}</span>
+                    <span className="flex items-center gap-1.5 shrink-0">
+                      {hasActed && entry?.at && (
+                        <span className="text-[11px] text-fg/40">{formatReviewerDate(entry.at)}</span>
+                      )}
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium whitespace-nowrap ${reviewerStatusPill(rs)}`}>
+                        {reviewerStatusLabel(rs)}
+                      </span>
+                    </span>
+                  </li>
+                )
+              })}
           </ul>
         </div>
       )}

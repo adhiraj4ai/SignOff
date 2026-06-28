@@ -197,6 +197,50 @@ describe('inline note composer for approve/request_changes', () => {
   })
 })
 
+describe('Reviewer roster with acted/awaiting status', () => {
+  it('shows progress summary and per-reviewer acted vs awaiting status', async () => {
+    const multiWorkflow: WorkflowConfig = {
+      required_approvers: ['a@o.c', 'b@o.c', 'c@o.c'],
+      min_approvals: 2,
+    }
+    const rec: ApprovalRecord = {
+      document: 'docs/a.md',
+      feature: 'f',
+      type: 'spec',
+      workflow: 'spec',
+      status: 'in_review',
+      reviewers: {
+        'a@o.c': { status: 'approved', at: '2026-06-28T10:00:00Z' },
+        'b@o.c': { status: 'in_review', at: '2026-06-28T11:00:00Z' },
+      },
+      history: [],
+    }
+    render(
+      <ReviewPanel
+        vaultPath="/v"
+        feature="f"
+        type="spec"
+        derivedStatus="in_review"
+        record={rec}
+        workflow={multiWorkflow}
+        onActionComplete={() => {}}
+      />
+    )
+    // All three emails render
+    await waitFor(() => screen.getByText('a@o.c'))
+    expect(screen.getByText('b@o.c')).toBeInTheDocument()
+    expect(screen.getByText('c@o.c')).toBeInTheDocument()
+
+    // Status labels for each reviewer
+    expect(screen.getByText('Approved')).toBeInTheDocument()
+    expect(screen.getByText('In review')).toBeInTheDocument()
+    expect(screen.getByText('Awaiting review')).toBeInTheDocument()
+
+    // Progress summary: 1 of 3 approved
+    expect(screen.getByText(/1 of 3 approved/i)).toBeInTheDocument()
+  })
+})
+
 describe('Vault access section', () => {
   it('shows the vault clone URL for reviewers when a remote is set', async () => {
     vi.mocked(window.chuckle.vault.getRemote).mockResolvedValue('git@github.com:org/proj-signoff.git')
