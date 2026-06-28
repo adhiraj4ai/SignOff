@@ -75,6 +75,7 @@ export function ReviewPanel({
   const [copied, setCopied] = useState(false)
   const [pendingAction, setPendingAction] = useState<'approve' | 'request_changes' | null>(null)
   const [note, setNote] = useState('')
+  const [actionError, setActionError] = useState<string | null>(null)
 
   useEffect(() => {
     let alive = true
@@ -105,9 +106,12 @@ export function ReviewPanel({
 
   async function act(action: ReviewAction): Promise<void> {
     setBusy(true)
+    setActionError(null)
     try {
       const r = await window.chuckle.review.action(vaultPath, feature, type, action)
       onActionComplete(r)
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : String(e))
     } finally {
       setBusy(false)
     }
@@ -116,13 +120,15 @@ export function ReviewPanel({
   async function submitWithNote(): Promise<void> {
     if (!pendingAction) return
     setBusy(true)
+    setActionError(null)
     try {
       const r = await window.chuckle.review.action(vaultPath, feature, type, pendingAction, note.trim() || null)
+      setPendingAction(null); setNote('')
       onActionComplete(r)
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : String(e))
     } finally {
       setBusy(false)
-      setPendingAction(null)
-      setNote('')
     }
   }
 
@@ -136,6 +142,11 @@ export function ReviewPanel({
 
   // Current user's reviewer status
   const meStatus: ReviewerStatus = record?.reviewers?.[authorEmail]?.status ?? 'pending'
+
+  // Reset composer when reviewer leaves in_review
+  useEffect(() => {
+    if (meStatus !== 'in_review') { setPendingAction(null); setNote(''); setActionError(null) }
+  }, [meStatus])
 
   // Whether the current user is a member (can act)
   const isMember =
@@ -221,6 +232,7 @@ export function ReviewPanel({
       {/* Current user's actions */}
       {record !== undefined && record !== null && isMember && (
         <div className="px-5 py-4 border-b border-border space-y-2">
+          {actionError && <p className="text-stop text-[12px]">{actionError}</p>}
           {meStatus === 'pending' && (
             <button
               onClick={() => act('start_review')}
@@ -235,14 +247,14 @@ export function ReviewPanel({
               {pendingAction === null ? (
                 <>
                   <button
-                    onClick={() => { setPendingAction('approve'); setNote('') }}
+                    onClick={() => { setPendingAction('approve'); setNote(''); setActionError(null) }}
                     disabled={busy}
                     className="w-full px-4 py-2 rounded-lg bg-ok text-white text-[13px] font-semibold hover:brightness-95 active:brightness-90 disabled:opacity-50 transition"
                   >
                     Approve
                   </button>
                   <button
-                    onClick={() => { setPendingAction('request_changes'); setNote('') }}
+                    onClick={() => { setPendingAction('request_changes'); setNote(''); setActionError(null) }}
                     disabled={busy}
                     className="w-full px-4 py-2 rounded-lg border border-border text-fg/80 text-[13px] font-medium hover:bg-app disabled:opacity-50 transition"
                   >

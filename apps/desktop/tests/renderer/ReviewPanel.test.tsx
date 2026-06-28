@@ -165,6 +165,36 @@ describe('inline note composer for approve/request_changes', () => {
     await waitFor(() => screen.getByRole('button', { name: /^approve$/i }))
     expect(window.chuckle.review.action).not.toHaveBeenCalled()
   })
+
+  it('keeps the composer open with the note and shows an error when review.action rejects', async () => {
+    vi.mocked(window.chuckle.review.action).mockRejectedValueOnce(new Error('only lead@o.c may review'))
+    render(
+      <ReviewPanel vaultPath="/v" feature="f" type="spec" derivedStatus="in_review"
+        record={record({ 'me@o.c': { status: 'in_review', at: 't' } })} workflow={workflow} onActionComplete={() => {}} />
+    )
+    await waitFor(() => screen.getByRole('button', { name: /^approve$/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^approve$/i }))
+    await waitFor(() => screen.getByPlaceholderText(/note/i))
+    fireEvent.change(screen.getByPlaceholderText(/note/i), { target: { value: 'keep me' } })
+    fireEvent.click(screen.getAllByRole('button', { name: /^approve$/i })[0])
+    await waitFor(() => screen.getByText(/only lead@o\.c may review/i))
+    expect((screen.getByPlaceholderText(/note/i) as HTMLTextAreaElement).value).toBe('keep me')
+  })
+
+  it('closes the composer when the reviewer is no longer in_review', async () => {
+    const { rerender } = render(
+      <ReviewPanel vaultPath="/v" feature="f" type="spec" derivedStatus="in_review"
+        record={record({ 'me@o.c': { status: 'in_review', at: 't' } })} workflow={workflow} onActionComplete={() => {}} />
+    )
+    await waitFor(() => screen.getByRole('button', { name: /^approve$/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^approve$/i }))
+    await waitFor(() => screen.getByPlaceholderText(/note/i))
+    rerender(
+      <ReviewPanel vaultPath="/v" feature="f" type="spec" derivedStatus="approved"
+        record={record({ 'me@o.c': { status: 'approved', at: 't' } }, 'approved')} workflow={workflow} onActionComplete={() => {}} />
+    )
+    await waitFor(() => expect(screen.queryByPlaceholderText(/note/i)).not.toBeInTheDocument())
+  })
 })
 
 describe('Vault access section', () => {
