@@ -38,6 +38,12 @@ describe("applyReviewerAction", () => {
     r = applyReviewerAction(r, "a@o.c", "reopen", "t3");
     expect(r.reviewers["a@o.c"].status).toBe("in_review");
   });
+
+  it("start_review works on a legacy record with no reviewers map", () => {
+    const legacy = { document: "d", feature: "f", type: "spec", workflow: "spec", status: "pending", history: [] } as unknown as ApprovalRecord;
+    const r = applyReviewerAction(legacy, "a@o.c", "start_review", "t1");
+    expect(r.reviewers["a@o.c"].status).toBe("in_review");
+  });
 });
 
 describe("deriveStatus", () => {

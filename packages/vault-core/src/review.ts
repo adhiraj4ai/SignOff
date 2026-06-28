@@ -24,7 +24,8 @@ export function applyReviewerAction(
   now: string,
   contentHash?: string
 ): ApprovalRecord {
-  const current = record.reviewers[email]?.status ?? "pending";
+  const reviewers = record.reviewers ?? {};
+  const current = reviewers[email]?.status ?? "pending";
   if ((action === "approve" || action === "request_changes") && current !== "in_review") {
     throw new Error(`reviewer must be in review before "${action}" (current: ${current})`);
   }
@@ -35,8 +36,8 @@ export function applyReviewerAction(
   };
   return {
     ...record,
-    reviewers: { ...record.reviewers, [email]: state },
-    history: [...record.history, { action: HISTORY_ACTION[action], by: email, at: now, message: null, content_hash: contentHash }],
+    reviewers: { ...reviewers, [email]: state },
+    history: [...(record.history ?? []), { action: HISTORY_ACTION[action], by: email, at: now, message: null, content_hash: contentHash }],
   };
 }
 
