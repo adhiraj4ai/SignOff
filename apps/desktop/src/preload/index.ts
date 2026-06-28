@@ -5,7 +5,12 @@ const api: ChuckleAPI = {
   vault: {
     list: () => ipcRenderer.invoke('vault:list'),
     remove: (vaultPath) => ipcRenderer.invoke('vault:remove', { vaultPath }),
-    create: (path, name) => ipcRenderer.invoke('vault:create', { path, name }),
+    create: (path, name, approvers) => ipcRenderer.invoke('vault:create', { path, name, approvers }),
+    onSetupProgress: (cb) => {
+      const listener = (_event: Electron.IpcRendererEvent, p: { done: number; total: number }) => cb(p)
+      ipcRenderer.on('vault:setup-progress', listener)
+      return () => ipcRenderer.removeListener('vault:setup-progress', listener)
+    },
     openExisting: (path) => ipcRenderer.invoke('vault:open-existing', { path }),
     selectDirectory: () => ipcRenderer.invoke('vault:select-directory'),
     sync: (vaultPath) => ipcRenderer.invoke('vault:sync', { vaultPath }),
@@ -26,12 +31,26 @@ const api: ChuckleAPI = {
       ipcRenderer.invoke('document:write', { vaultPath, feature, type, content }),
     getApproval: (vaultPath, feature, type) =>
       ipcRenderer.invoke('document:get-approval', { vaultPath, feature, type }),
-    approve: (vaultPath, feature, type, message) =>
-      ipcRenderer.invoke('document:approve', { vaultPath, feature, type, message }),
-    reject: (vaultPath, feature, type, message) =>
-      ipcRenderer.invoke('document:reject', { vaultPath, feature, type, message }),
     isStale: (vaultPath, feature, type) =>
       ipcRenderer.invoke('document:is-stale', { vaultPath, feature, type }),
+  },
+  review: {
+    action: (vaultPath, feature, type, action, message) =>
+      ipcRenderer.invoke('review:action', { vaultPath, feature, type, action, message }),
+  },
+  comments: {
+    read: (vaultPath, feature, type) =>
+      ipcRenderer.invoke('comments:read', { vaultPath, feature, type }),
+    addThread: (vaultPath, feature, type, section, line, body) =>
+      ipcRenderer.invoke('comments:add-thread', { vaultPath, feature, type, section, line, body }),
+    addReply: (vaultPath, feature, type, threadId, body) =>
+      ipcRenderer.invoke('comments:add-reply', { vaultPath, feature, type, threadId, body }),
+    setResolved: (vaultPath, feature, type, threadId, resolved) =>
+      ipcRenderer.invoke('comments:set-resolved', { vaultPath, feature, type, threadId, resolved }),
+  },
+  project: {
+    readClaudeMd: (vaultPath) =>
+      ipcRenderer.invoke('project:read-claude-md', { vaultPath }),
   },
   workflows: {
     read: (vaultPath) => ipcRenderer.invoke('workflows:read', { vaultPath }),

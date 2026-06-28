@@ -8,13 +8,15 @@ interface Props {
 const actionLabel: Record<ApprovalHistoryEntry['action'], string> = {
   submitted: 'Submitted',
   resubmitted: 'Resubmitted',
+  started_review: 'Started review',
   approved: 'Approved',
-  rejected: 'Changes requested',
+  requested_changes: 'Changes requested',
+  reopened: 'Reopened',
 }
 
 function dotColor(action: ApprovalHistoryEntry['action']): string {
   if (action === 'approved') return 'bg-ok'
-  if (action === 'rejected') return 'bg-stop'
+  if (action === 'requested_changes') return 'bg-stop'
   return 'bg-ink/30'
 }
 

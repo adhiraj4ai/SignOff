@@ -16,6 +16,7 @@ const mockChuckle: ChuckleAPI = {
     push: vi.fn(),
     publishBranch: vi.fn(),
     author: vi.fn(),
+    onSetupProgress: vi.fn().mockReturnValue(() => {}),
   },
   features: {
     list: vi.fn(),
@@ -24,9 +25,19 @@ const mockChuckle: ChuckleAPI = {
     read: vi.fn(),
     write: vi.fn(),
     getApproval: vi.fn(),
-    approve: vi.fn(),
-    reject: vi.fn(),
     isStale: vi.fn(),
+  },
+  review: {
+    action: vi.fn(),
+  },
+  comments: {
+    read: vi.fn(),
+    addThread: vi.fn(),
+    addReply: vi.fn(),
+    setResolved: vi.fn(),
+  },
+  project: {
+    readClaudeMd: vi.fn(),
   },
   workflows: {
     read: vi.fn(),

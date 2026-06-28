@@ -6,6 +6,7 @@ import {
   appendHistory,
   getApprovalStatus,
 } from "../src/approval.js";
+import { applyReviewerAction } from "../src/review.js";
 import type { ApprovalRecord } from "../src/types.js";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -28,6 +29,7 @@ const baseRecord: ApprovalRecord = {
   type: "spec",
   workflow: "spec",
   status: "pending",
+  reviewers: {},
   history: [
     { action: "submitted", by: "dev@org.com", at: "2026-06-27T10:00:00Z", message: null },
   ],
@@ -83,8 +85,8 @@ describe("appendHistory", () => {
     expect(updated.status).toBe("approved");
   });
 
-  it("sets status to rejected on rejected action", () => {
-    const entry = { action: "rejected" as const, by: "arch@org.com", at: "2026-06-27T12:00:00Z", message: "Needs work" };
+  it("sets status to rejected on requested_changes action", () => {
+    const entry = { action: "requested_changes" as const, by: "arch@org.com", at: "2026-06-27T12:00:00Z", message: "Needs work" };
     const updated = appendHistory(baseRecord, entry);
     expect(updated.status).toBe("rejected");
   });
@@ -102,16 +104,12 @@ describe("getApprovalStatus", () => {
     expect(result.status).toBe("not_found");
   });
 
-  it("returns approved status with approver details", async () => {
-    const approvedRecord: ApprovalRecord = {
-      ...baseRecord,
-      status: "approved",
-      history: [
-        ...baseRecord.history,
-        { action: "approved", by: "arch@org.com", at: "2026-06-27T12:00:00Z", message: "LGTM" },
-      ],
-    };
-    await writeApproval(tmpDir, approvedRecord);
+  it("returns approved status with approver details when a reviewer has approved", async () => {
+    // Drive the reviewers map: start_review then approve (no required_approvers in this
+    // bare-tmpDir setup, so any approver in the map derives "approved").
+    let rec = applyReviewerAction(baseRecord, "arch@org.com", "start_review", "2026-06-27T11:00:00Z");
+    rec = applyReviewerAction(rec, "arch@org.com", "approve", "2026-06-27T12:00:00Z", "hash-abc");
+    await writeApproval(tmpDir, rec);
     const result = await getApprovalStatus(tmpDir, "user-auth", "spec");
     expect(result.status).toBe("approved");
     expect(result.approved_by).toBe("arch@org.com");

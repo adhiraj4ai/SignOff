@@ -11,8 +11,12 @@ import {
   listFeatures,
   readDocument,
   getDocumentApproval,
-  approveDocument,
-  rejectDocument,
+  reviewAction,
+  readDocComments,
+  addCommentThread,
+  addCommentReply,
+  setCommentResolved,
+  readProjectClaudeMd,
   publishBranch,
   getVaultStatus,
   writeVaultWorkflows,
@@ -146,55 +150,11 @@ describe('getDocumentApproval', () => {
   })
 })
 
-describe('approveDocument', () => {
-  it('updates record status to approved and commits', async () => {
-    await seedDoc('user-auth', 'spec')
-    await approveDocument(vaultPath, 'user-auth', 'spec', 'LGTM')
-    const record = await getDocumentApproval(vaultPath, 'user-auth', 'spec')
-    expect(record!.status).toBe('approved')
-    const lastEntry = record!.history.at(-1)!
-    expect(lastEntry.action).toBe('approved')
-    expect(lastEntry.message).toBe('LGTM')
-  })
-
-  it('records content_hash in the history entry', async () => {
-    await seedDoc('user-auth', 'spec', '# Auth\n')
-    await approveDocument(vaultPath, 'user-auth', 'spec', null)
-    const record = await getDocumentApproval(vaultPath, 'user-auth', 'spec')
-    const lastEntry = record!.history.at(-1)!
-    expect(lastEntry.content_hash).toBeDefined()
-    expect(typeof lastEntry.content_hash).toBe('string')
-  })
-
-  it('throws if no approval record exists to approve', async () => {
-    await expect(approveDocument(vaultPath, 'user-auth', 'spec', null)).rejects.toThrow()
-  })
-})
-
-describe('rejectDocument', () => {
-  it('updates record status to rejected and commits', async () => {
-    await seedDoc('user-auth', 'spec')
-    await rejectDocument(vaultPath, 'user-auth', 'spec', 'Needs more detail')
-    const record = await getDocumentApproval(vaultPath, 'user-auth', 'spec')
-    expect(record!.status).toBe('rejected')
-    const lastEntry = record!.history.at(-1)!
-    expect(lastEntry.action).toBe('rejected')
-    expect(lastEntry.message).toBe('Needs more detail')
-  })
-
-  it('records content_hash in the rejection history entry', async () => {
-    await seedDoc('user-auth', 'spec', '# Auth\n')
-    await rejectDocument(vaultPath, 'user-auth', 'spec', 'Not ready')
-    const record = await getDocumentApproval(vaultPath, 'user-auth', 'spec')
-    const lastEntry = record!.history.at(-1)!
-    expect(lastEntry.content_hash).toBeDefined()
-  })
-})
-
 describe('git sync of review decisions', () => {
   it('records the decision even when there is no remote (pushed: false)', async () => {
     await seedDoc('user-auth', 'spec')
-    const result = await approveDocument(vaultPath, 'user-auth', 'spec', null)
+    await reviewAction(vaultPath, 'user-auth', 'spec', 'start_review')
+    const result = await reviewAction(vaultPath, 'user-auth', 'spec', 'approve')
     expect(result.pushed).toBe(false)
     // the decision is still committed locally
     const record = await getDocumentApproval(vaultPath, 'user-auth', 'spec')
@@ -217,7 +177,8 @@ describe('git sync of review decisions', () => {
     expect(published.ok).toBe(true)
 
     // now an approval pushes to the remote
-    const result = await approveDocument(vaultPath, 'user-auth', 'plan', null)
+    await reviewAction(vaultPath, 'user-auth', 'plan', 'start_review')
+    const result = await reviewAction(vaultPath, 'user-auth', 'plan', 'approve')
     expect(result.pushed).toBe(true)
 
     // the branch now tracks origin and nothing is left unpushed
@@ -269,7 +230,8 @@ describe('writeVaultWorkflows', () => {
 describe('isDocumentStale', () => {
   it('flags a doc stale after it changes post-approval', async () => {
     await seedDoc('user-auth', 'spec', '# v1\n')
-    await approveDocument(vaultPath, 'user-auth', 'spec', null)
+    await reviewAction(vaultPath, 'user-auth', 'spec', 'start_review')
+    await reviewAction(vaultPath, 'user-auth', 'spec', 'approve')
     expect(await isDocumentStale(vaultPath, 'user-auth', 'spec')).toBe(false)
     const projectRoot = path.dirname(vaultPath)
     await fs.writeFile(path.join(projectRoot, 'docs/specs/user-auth.md'), '# v2\n')
@@ -280,5 +242,83 @@ describe('isDocumentStale', () => {
     await seedDoc('user-auth', 'spec', '# v1\n')
     // Not approved yet — isDocumentStale should return false
     expect(await isDocumentStale(vaultPath, 'user-auth', 'spec')).toBe(false)
+  })
+})
+
+describe('reviewAction', () => {
+  it('reviewAction walks start_review -> approve and derives approved (single self-approver)', async () => {
+    await seedDoc('user-auth', 'spec', '# v1\n')
+    await reviewAction(vaultPath, 'user-auth', 'spec', 'start_review')
+    await reviewAction(vaultPath, 'user-auth', 'spec', 'approve')
+    const rec = await getDocumentApproval(vaultPath, 'user-auth', 'spec')
+    const email = Object.keys(rec!.reviewers)[0]
+    expect(rec!.reviewers[email].status).toBe('approved')
+  })
+
+  it('reviewAction approve before start_review throws', async () => {
+    await seedDoc('user-auth', 'spec')
+    await expect(reviewAction(vaultPath, 'user-auth', 'spec', 'approve')).rejects.toThrow()
+  })
+
+  it('reviewAction passes the message through to the history entry', async () => {
+    await seedDoc('user-auth', 'spec')
+    await reviewAction(vaultPath, 'user-auth', 'spec', 'start_review')
+    await reviewAction(vaultPath, 'user-auth', 'spec', 'approve', 'LGTM')
+    const record = await getDocumentApproval(vaultPath, 'user-auth', 'spec')
+    expect(record?.history.at(-1)?.message).toBe('LGTM')
+  })
+
+  it('reviewAction start_review with no message leaves message: null on history entry', async () => {
+    await seedDoc('user-auth', 'spec')
+    await reviewAction(vaultPath, 'user-auth', 'spec', 'start_review')
+    const record = await getDocumentApproval(vaultPath, 'user-auth', 'spec')
+    expect(record?.history.at(-1)?.message).toBeNull()
+  })
+})
+
+describe('comments', () => {
+  it('add thread, reply, resolve round-trip', async () => {
+    await seedDoc('user-auth', 'spec')
+    let file = await addCommentThread(vaultPath, 'user-auth', 'spec', 'goals', 12, 'Why this scope?')
+    const threadId = file.threads[0].id
+    file = await addCommentReply(vaultPath, 'user-auth', 'spec', threadId, 'Because X')
+    expect(file.threads[0].comments).toHaveLength(2)
+    file = await setCommentResolved(vaultPath, 'user-auth', 'spec', threadId, true)
+    expect(file.threads[0].resolved).toBe(true)
+    expect((await readDocComments(vaultPath, 'user-auth', 'spec')).threads[0].resolved).toBe(true)
+  })
+})
+
+describe('readProjectClaudeMd', () => {
+  it('returns content when present, null otherwise', async () => {
+    const projectRoot = path.dirname(vaultPath)
+    expect(await readProjectClaudeMd(vaultPath)).toBeNull()
+    await fs.writeFile(path.join(projectRoot, 'CLAUDE.md'), '# Project rules\n')
+    expect(await readProjectClaudeMd(vaultPath)).toContain('# Project rules')
+  })
+})
+
+describe('createVault with approvers', () => {
+  it('writes approvers to both spec and plan workflows', async () => {
+    const projectRoot = path.join(tmpDir, 'approver-proj')
+    await fs.mkdir(projectRoot, { recursive: true })
+    const result = await createVault(projectRoot, 'p', ['lead@o.c', 'arch@o.c'])
+    const workflows = await readVaultWorkflows(result.path)
+    expect(workflows.spec.required_approvers).toEqual(['lead@o.c', 'arch@o.c'])
+    expect(workflows.plan.required_approvers).toEqual(['lead@o.c', 'arch@o.c'])
+  })
+})
+
+describe('createVault onProgress', () => {
+  it('calls onProgress with final done===total when docs exist', async () => {
+    const projectRoot = path.join(tmpDir, 'progress-test')
+    await fs.mkdir(path.join(projectRoot, 'docs'), { recursive: true })
+    await fs.writeFile(path.join(projectRoot, 'docs', 'spec-one.md'), '# spec')
+    await fs.writeFile(path.join(projectRoot, 'docs', 'spec-two.md'), '# spec2')
+    const calls: Array<{ done: number; total: number }> = []
+    await createVault(projectRoot, 'progress-proj', [], (done, total) => calls.push({ done, total }))
+    expect(calls.length).toBeGreaterThan(0)
+    const last = calls[calls.length - 1]
+    expect(last.done).toBe(last.total)
   })
 })

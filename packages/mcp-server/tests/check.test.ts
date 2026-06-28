@@ -7,6 +7,7 @@ import {
   writeApproval,
   appendHistory,
   readApproval,
+  hashContent,
 } from "@chuckle/vault-core";
 import { handleCheck } from "../src/tools/check.js";
 
@@ -50,17 +51,22 @@ describe("handleCheck", () => {
 
   it("returns approved with approved_by and approved_at after approval", async () => {
     const projectRoot = path.dirname(vaultPath);
-    await fs.writeFile(path.join(projectRoot, "spec.md"), "# Spec\n");
+    const docContent = "# Spec\n";
+    const docPath = path.join(projectRoot, "spec.md");
+    await fs.writeFile(docPath, docContent);
     const vault = await VaultManager.open(vaultPath);
     await vault.submitForReview("user-auth", "spec", "spec.md", "dev@org.com", "Dev");
 
+    // Drive approval through the reviewers map so deriveStatus resolves to "approved".
+    // Include the doc's content_hash so the approval is not treated as stale.
     const record = (await readApproval(vaultPath, "user-auth", "spec"))!;
-    const approved = appendHistory(record, {
-      action: "approved",
-      by: "arch@org.com",
-      at: "2026-06-27T14:00:00Z",
-      message: "LGTM",
-    });
+    const contentHash = hashContent(await fs.readFile(docPath));
+    const approved = {
+      ...record,
+      status: "approved" as const,
+      reviewers: { "arch@org.com": { status: "approved" as const, at: "2026-06-27T14:00:00Z", content_hash: contentHash } },
+      history: [...record.history, { action: "approved" as const, by: "arch@org.com", at: "2026-06-27T14:00:00Z", message: "LGTM", content_hash: contentHash }],
+    };
     await writeApproval(vaultPath, approved);
 
     const result = await handleCheck(vaultPath, {
@@ -73,34 +79,37 @@ describe("handleCheck", () => {
     expect(result.stale).toBe(false);
   });
 
-  it("reports stale=true when the document has changed since approval", async () => {
+  it("reports in_review when the document has changed since approval (stale approval)", async () => {
     const projectRoot = path.dirname(vaultPath);
     const docPath = path.join(projectRoot, "spec.md");
-    await fs.writeFile(docPath, "# Spec\n");
+    const originalContent = "# Spec\n";
+    await fs.writeFile(docPath, originalContent);
     const vault = await VaultManager.open(vaultPath);
     await vault.submitForReview("user-auth", "spec", "spec.md", "dev@org.com", "Dev");
 
-    // Approve using the correct content_hash from submitted history
+    // Drive approval through the reviewers map with the original content hash.
+    // When the doc later changes, deriveStatus will see the new hash doesn't match
+    // the reviewer's content_hash, so approvedFresh() → false → status becomes in_review.
     const submitted = (await readApproval(vaultPath, "user-auth", "spec"))!;
-    const submittedHash = submitted.history[0].content_hash;
-    const approved = appendHistory(submitted, {
-      action: "approved",
-      by: "arch@org.com",
-      at: "2026-06-27T14:00:00Z",
-      message: "LGTM",
-      content_hash: submittedHash,
-    });
+    const originalHash = hashContent(await fs.readFile(docPath));
+    const approved = {
+      ...submitted,
+      status: "approved" as const,
+      reviewers: { "arch@org.com": { status: "approved" as const, at: "2026-06-27T14:00:00Z", content_hash: originalHash } },
+      history: [...submitted.history, { action: "approved" as const, by: "arch@org.com", at: "2026-06-27T14:00:00Z", message: "LGTM", content_hash: originalHash }],
+    };
     await writeApproval(vaultPath, approved);
 
-    // Now change the doc so it's stale
+    // Now change the doc — the reviewer's approval is now for a stale hash
     await fs.writeFile(docPath, "# Spec CHANGED\n");
 
     const result = await handleCheck(vaultPath, {
       feature_name: "user-auth",
       document_type: "spec",
     });
-    expect(result.status).toBe("approved");
-    expect(result.stale).toBe(true);
+    // With the per-reviewer model, a stale approval (hash mismatch) derives to in_review,
+    // not approved, because approvedFresh() returns false.
+    expect(result.status).toBe("in_review");
   });
 
   it("throws if document_type is invalid", async () => {

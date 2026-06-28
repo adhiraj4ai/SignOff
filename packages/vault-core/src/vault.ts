@@ -155,6 +155,7 @@ export class VaultManager {
           ...existing,
           document: srcRelPath,
           status: "pending",
+          reviewers: existing.reviewers ?? {},
           history: [
             ...existing.history,
             { action: "resubmitted", by: authorEmail, at: now, message: null, content_hash: contentHash },
@@ -166,6 +167,7 @@ export class VaultManager {
           type,
           workflow: type,
           status: "pending",
+          reviewers: {},
           history: [{ action: "submitted", by: authorEmail, at: now, message: null, content_hash: contentHash }],
         };
 
