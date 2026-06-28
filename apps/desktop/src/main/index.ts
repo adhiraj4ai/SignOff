@@ -1,5 +1,11 @@
 import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron'
-import { join } from 'path'
+import { join, dirname } from 'path'
+import { fileURLToPath } from 'node:url'
+
+// The main process is bundled as ESM, where `__dirname` is undefined. Derive it
+// from import.meta.url so the preload + production renderer paths resolve in the
+// packaged app (dev uses ELECTRON_RENDERER_URL and never hit this).
+const appDir = dirname(fileURLToPath(import.meta.url))
 import {
   listVaults,
   removeVault,
@@ -33,7 +39,7 @@ function createWindow(): void {
     height: 800,
     title: 'Signoff',
     webPreferences: {
-      preload: join(__dirname, '../preload/index.cjs'),
+      preload: join(appDir, '../preload/index.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
     },
@@ -41,7 +47,7 @@ function createWindow(): void {
   if (process.env['ELECTRON_RENDERER_URL']) {
     win.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
-    win.loadFile(join(__dirname, '../renderer/index.html'))
+    win.loadFile(join(appDir, '../renderer/index.html'))
   }
 }
 

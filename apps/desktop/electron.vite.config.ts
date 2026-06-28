@@ -4,7 +4,11 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   main: {
-    plugins: [externalizeDepsPlugin()],
+    // Bundle the workspace package + simple-git into the main process so the
+    // packaged app is self-contained (no node_modules resolution at runtime —
+    // avoids monorepo hoisting/symlink packaging pain). simple-git is pure JS
+    // that shells out to the system `git`, so it bundles cleanly.
+    plugins: [externalizeDepsPlugin({ exclude: ['@chuckle/vault-core', 'simple-git'] })],
     resolve: {
       alias: { '@shared': resolve('src/shared') },
     },

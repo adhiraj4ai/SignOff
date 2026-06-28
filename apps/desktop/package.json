@@ -2,15 +2,37 @@
   "name": "@chuckle/desktop",
   "version": "0.1.0",
   "description": "Chuckle desktop app — vault UI for document review and approval",
+  "author": "Rajan Adhikari",
   "type": "module",
   "main": "out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",
+    "build:installer": "electron-vite build && npx --yes electron-builder@26 --mac dmg",
     "typecheck": "tsc -p tsconfig.node.json --noEmit && tsc -p tsconfig.web.json --noEmit",
     "test": "vitest run --config vitest.node.config.ts && vitest run --config vitest.config.ts",
     "test:main": "vitest run --config vitest.node.config.ts",
     "test:renderer": "vitest run --config vitest.config.ts"
+  },
+  "build": {
+    "appId": "com.denzing.signoff",
+    "productName": "Signoff",
+    "electronVersion": "34.5.8",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "out/**/*",
+      "package.json"
+    ],
+    "npmRebuild": false,
+    "mac": {
+      "target": "dmg",
+      "category": "public.app-category.developer-tools",
+      "icon": "build/icon.png",
+      "identity": null
+    }
   },
   "dependencies": {
     "@chuckle/vault-core": "*",

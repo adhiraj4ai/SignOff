@@ -10,3 +10,4 @@ docs/superpowers/
 # Chuckle project-local state (active-feature pointer)
 .chuckle/
 .signoff/
+apps/desktop/release/
