@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, shell, session } from 'electron'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'node:url'
 
@@ -35,23 +35,54 @@ import {
   cloneVault,
   getSyncStateBridge,
 } from './vault-bridge.js'
+import {
+  isAllowedExternalUrl,
+  isAllowedNavigation,
+  contentSecurityPolicy,
+  rendererWebPreferences,
+} from './security.js'
 
 function createWindow(): void {
   const win = new BrowserWindow({
     width: 1200,
     height: 800,
     title: 'Signoff',
-    webPreferences: {
-      preload: join(appDir, '../preload/index.cjs'),
-      contextIsolation: true,
-      nodeIntegration: false,
-    },
+    webPreferences: rendererWebPreferences(join(appDir, '../preload/index.cjs')),
   })
+
+  // Hardening: the renderer is a bundled local app and should never open new
+  // windows or navigate away from its own origin. Block both — any external
+  // link must go through the validated app:open-external IPC instead.
+  win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
+  win.webContents.on('will-navigate', (event, url) => {
+    if (!isAllowedNavigation(url, win.webContents.getURL())) event.preventDefault()
+  })
+
   if (process.env['ELECTRON_RENDERER_URL']) {
     win.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
     win.loadFile(join(appDir, '../renderer/index.html'))
   }
+}
+
+/**
+ * Apply a strict Content-Security-Policy to every renderer response. The app is
+ * fully bundled (Vite inlines mermaid/katex/highlight.js and their assets), so
+ * no remote origins are needed. We allow inline styles/data: images because the
+ * bundler emits inline <style> tags and SVG data: URIs (e.g. the favicon), and
+ * 'unsafe-eval' is required by the dev server's HMR runtime only.
+ */
+function applyContentSecurityPolicy(): void {
+  const dev = !!process.env['ELECTRON_RENDERER_URL']
+  const csp = contentSecurityPolicy(dev)
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [csp],
+      },
+    })
+  })
 }
 
 function registerIpcHandlers(): void {
@@ -74,7 +105,16 @@ function registerIpcHandlers(): void {
   ipcMain.handle('vault:push', (_e, { vaultPath }) => pushVault(vaultPath))
   ipcMain.handle('vault:publish-branch', (_e, { vaultPath }) => publishBranch(vaultPath))
   ipcMain.handle('vault:author', (_e, { vaultPath }) => getVaultAuthor(vaultPath))
-  ipcMain.handle('app:open-external', (_e, { url }) => shell.openExternal(url))
+  ipcMain.handle('app:open-external', async (_e, { url }) => {
+    // Only ever hand http(s) URLs to the OS. A renderer-supplied value with any
+    // other scheme (file:, javascript:, smb:, custom protocol handlers, …)
+    // could trigger arbitrary local handlers — refuse it.
+    if (!isAllowedExternalUrl(String(url))) {
+      return { ok: false, error: `refused to open ${String(url)}` }
+    }
+    await shell.openExternal(new URL(String(url)).toString())
+    return { ok: true }
+  })
   ipcMain.handle('features:list', (_e, { vaultPath }) => listFeatures(vaultPath))
   ipcMain.handle('document:read', (_e, { vaultPath, feature, type }) => readDocument(vaultPath, feature, type))
   ipcMain.handle('document:write', (_e, { vaultPath, feature, type, content }) =>
@@ -96,6 +136,7 @@ function registerIpcHandlers(): void {
 }
 
 app.whenReady().then(() => {
+  applyContentSecurityPolicy()
   registerIpcHandlers()
   createWindow()
 })

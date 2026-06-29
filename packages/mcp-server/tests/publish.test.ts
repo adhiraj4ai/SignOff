@@ -70,6 +70,40 @@ describe("handlePublish", () => {
     ).rejects.toThrow(/document_type/);
   });
 
+  it("rejects a path-traversal feature_name", async () => {
+    await expect(
+      handlePublish(
+        vaultPath,
+        {
+          feature_name: "../../etc/x",
+          document_type: "spec",
+          document_path: "docs/2026-06-27-user-auth-design.md",
+        },
+        projectRoot
+      )
+    ).rejects.toThrow(/feature/i);
+  });
+
+  it("rejects an absolute document_path", async () => {
+    await expect(
+      handlePublish(
+        vaultPath,
+        { feature_name: "user-auth", document_type: "spec", document_path: "/etc/passwd" },
+        projectRoot
+      )
+    ).rejects.toThrow(/document_path/);
+  });
+
+  it("rejects a document_path that escapes the project root", async () => {
+    await expect(
+      handlePublish(
+        vaultPath,
+        { feature_name: "user-auth", document_type: "spec", document_path: "../../etc/x" },
+        projectRoot
+      )
+    ).rejects.toThrow(/document_path|escapes/i);
+  });
+
   it("writes the active-feature pointer to the project root on publish", async () => {
     await handlePublish(
       vaultPath,

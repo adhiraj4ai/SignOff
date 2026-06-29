@@ -19,6 +19,10 @@ function classifyDoc(rel: string): DocumentType {
   if (/(^|\/)plans?(\/|$)/.test(p) || /plan/.test(path.basename(p))) return "plan";
   return "spec";
 }
+/** Only markdown files qualify for the "spec/plan authoring under a doc root" free pass. */
+function isMarkdown(rel: string): boolean {
+  return rel.toLowerCase().endsWith(".md");
+}
 async function readDocRoots(vaultPath: string): Promise<string[]> {
   try {
     const cfg = JSON.parse(await fs.readFile(path.join(vaultPath, "config.json"), "utf-8"));
@@ -45,8 +49,10 @@ export async function evaluateGate(event: PreToolUseEvent): Promise<GateDecision
 
     const underDocRoot = docRoots.some((r) => isUnder(rel, r));
 
-    // Spec authoring is the entry point: registered spec OR a new spec-classified file under a doc root.
-    if (featureFor("spec") || (underDocRoot && classifyDoc(rel) === "spec")) return { allow: true };
+    // Spec authoring is the entry point: registered spec OR a new spec-classified
+    // MARKDOWN file under a doc root. Non-.md files (e.g. docs/app.ts) do NOT get
+    // this free pass — they fall through to the code-gating path below.
+    if (featureFor("spec") || (underDocRoot && isMarkdown(rel) && classifyDoc(rel) === "spec")) return { allow: true };
 
     // Registered plan doc → gate on that feature's spec approval.
     const planFeature = featureFor("plan");
@@ -56,9 +62,9 @@ export async function evaluateGate(event: PreToolUseEvent): Promise<GateDecision
       return { allow: false, reason: `🔒 Signoff: plan authoring for "${planFeature}" is gated on spec approval (spec status: ${status.status}).` };
     }
 
-    // A new plan-classified file under a doc root with no registration yet → allow authoring
+    // A new plan-classified MARKDOWN file under a doc root with no registration yet → allow authoring
     // (it becomes registered on submit; spec-gating applies once registered).
-    if (underDocRoot && classifyDoc(rel) === "plan") return { allow: true };
+    if (underDocRoot && isMarkdown(rel) && classifyDoc(rel) === "plan") return { allow: true };
 
     // Otherwise this is code: gate on the active feature's plan approval.
     const pointer = await readActiveFeature(event.cwd);

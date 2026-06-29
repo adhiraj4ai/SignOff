@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import type { ApprovalRecord, ApprovalStatus, DocumentType, ReviewAction, ReviewerStatus, ReviewResult, WorkflowConfig } from '@shared/ipc-types'
 import { ReviewHistory } from './ReviewHistory'
 import { ReviewerSettings } from './ReviewerSettings'
@@ -74,6 +74,9 @@ export function ReviewPanel({
   const [authorEmail, setAuthorEmail] = useState<string>('')
   const [showSettings, setShowSettings] = useState(false)
   const [busy, setBusy] = useState(false)
+  // Ref guard: `busy` state updates asynchronously, so a fast double-click can
+  // fire two actions before the disabled state lands. The ref blocks the second.
+  const busyRef = useRef(false)
   const [vaultRemote, setVaultRemote] = useState<string | null | undefined>(undefined)
   const [hasClaudeMd, setHasClaudeMd] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -83,20 +86,20 @@ export function ReviewPanel({
 
   useEffect(() => {
     let alive = true
-    window.signoff.vault.author(vaultPath).then((a) => {
-      if (alive) setAuthorEmail(a.email)
-    })
+    window.signoff.vault.author(vaultPath)
+      .then((a) => { if (alive) setAuthorEmail(a.email) })
+      .catch(() => { /* author stays '' — actions guarded by membership */ })
     return () => { alive = false }
   }, [vaultPath])
 
   useEffect(() => {
     let alive = true
-    window.signoff.vault.getRemote(vaultPath).then((r) => {
-      if (alive) setVaultRemote(r)
-    })
-    window.signoff.project.readClaudeMd(vaultPath).then((c) => {
-      if (alive) setHasClaudeMd(c !== null)
-    })
+    window.signoff.vault.getRemote(vaultPath)
+      .then((r) => { if (alive) setVaultRemote(r) })
+      .catch(() => { if (alive) setVaultRemote(null) })
+    window.signoff.project.readClaudeMd(vaultPath)
+      .then((c) => { if (alive) setHasClaudeMd(c !== null) })
+      .catch(() => { if (alive) setHasClaudeMd(false) })
     return () => { alive = false }
   }, [vaultPath])
 
@@ -109,6 +112,8 @@ export function ReviewPanel({
   }
 
   async function act(action: ReviewAction): Promise<void> {
+    if (busyRef.current) return
+    busyRef.current = true
     setBusy(true)
     setActionError(null)
     try {
@@ -117,12 +122,15 @@ export function ReviewPanel({
     } catch (e) {
       setActionError(e instanceof Error ? e.message : String(e))
     } finally {
+      busyRef.current = false
       setBusy(false)
     }
   }
 
   async function submitWithNote(): Promise<void> {
     if (!pendingAction) return
+    if (busyRef.current) return
+    busyRef.current = true
     setBusy(true)
     setActionError(null)
     try {
@@ -132,6 +140,7 @@ export function ReviewPanel({
     } catch (e) {
       setActionError(e instanceof Error ? e.message : String(e))
     } finally {
+      busyRef.current = false
       setBusy(false)
     }
   }

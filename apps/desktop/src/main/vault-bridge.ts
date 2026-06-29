@@ -10,7 +10,7 @@ import {
   pullRebase,
   push,
   getSyncState,
-  resetHardToUpstream,
+  isRebaseInProgress,
   SyncConflictError,
   readWorkflows,
   getWorkflowForType,
@@ -67,6 +67,14 @@ function isPushReject(message: string): boolean {
  * Conflicts are RETURNED (not thrown) so callers can surface a resync prompt.
  * A non-conflict pull failure degrades to a local-only commit so the user's
  * action is never lost.
+ *
+ * On a push rejection we re-pull (`pull --rebase`) and retry rather than
+ * `git reset --hard`-ing to the upstream: a hard reset would silently discard
+ * any local work, whereas a rebase replays our single transaction commit on top
+ * of the advanced remote and leaves the tree intact. The only case we refuse to
+ * auto-resolve is a *pre-existing* local divergence (more than one unpushed
+ * commit before we even apply): there we surface a conflict so the user resyncs
+ * deliberately instead of having unrelated local commits silently rebased.
  */
 async function transact(
   vaultPath: string,
@@ -74,7 +82,19 @@ async function transact(
 ): Promise<ReviewResult> {
   const online = await isOnline(vaultPath)
   const { name, email } = await resolveVaultAuthor(vaultPath)
+  // Pre-existing divergence guard: if the branch already carries more than one
+  // unpushed commit relative to its upstream, a fast push could only succeed by
+  // rebasing those (possibly unrelated) commits onto the advanced remote. Refuse
+  // and let the user resync rather than reordering their local history for them.
+  if (online && (await getSyncState(vaultPath)).ahead > 1) {
+    return { pushed: false, conflict: true, reason: 'local commits diverge from the remote — resync required' }
+  }
+  // Apply + commit our single transaction commit once, then sync it to the
+  // remote. On push-reject we rebase the commit onto the advanced remote and
+  // retry the push — we never re-run applyFn (that would duplicate the commit)
+  // and never hard-reset (that would discard local work).
   let lastErr = ''
+  let committed = false
   for (let attempt = 0; attempt < 3; attempt++) {
     if (online) {
       try {
@@ -84,14 +104,22 @@ async function transact(
           // rebase conflict — surface it to the caller so the UI can prompt resync
           return { pushed: false, conflict: true, reason: e.message }
         }
+        if (committed) {
+          // We already have our commit locally; a later pull failed (network).
+          // The change is safe on disk — report unsynced rather than losing it.
+          return { pushed: false, reason: e instanceof Error ? e.message : String(e) }
+        }
         // network/auth/other pull failure → degrade to offline: apply + commit locally
         const { files, message } = await applyFn()
         await stageAndCommit(vaultPath, files, message, email, name)
         return { pushed: false, reason: e instanceof Error ? e.message : String(e) }
       }
     }
-    const { files, message } = await applyFn()
-    await stageAndCommit(vaultPath, files, message, email, name)
+    if (!committed) {
+      const { files, message } = await applyFn()
+      await stageAndCommit(vaultPath, files, message, email, name)
+      committed = true
+    }
     if (!online) return { pushed: false, reason: 'no remote configured' }
     try {
       await push(vaultPath)
@@ -99,14 +127,10 @@ async function transact(
     } catch (err) {
       lastErr = err instanceof Error ? err.message : String(err)
       if (!isPushReject(lastErr)) return { pushed: false, reason: lastErr }
-      // remote advanced between pull and push; discard our single commit and re-apply on newest
-      const ahead = (await getSyncState(vaultPath)).ahead
-      if (ahead === 1) {
-        await resetHardToUpstream(vaultPath)
-      } else {
-        // multiple unpushed commits diverged from remote — cannot safely rebase; signal caller
-        return { pushed: false, conflict: true, reason: 'local commits diverge from the remote — resync required' }
-      }
+      // Remote advanced between our pull and push. Loop back: the next iteration
+      // re-runs `pull --rebase`, replaying our already-made commit on top of the
+      // new remote tip (no hard reset, no lost work), then retries the push. A
+      // real content conflict surfaces as SyncConflictError from pullRebase.
     }
   }
   return { pushed: false, reason: lastErr }
@@ -268,15 +292,23 @@ export async function openExistingVault(selected: string): Promise<VaultOpenResu
   // Migrate legacy docs-as-vault layout to index-by-path (best-effort)
   try { await migrateToIndex(vaultDir) } catch { /* best-effort */ }
   const manager = await VaultManager.open(vaultDir)
+  let warning: string | undefined
   try {
     if ((await getSyncState(vaultDir)).hasUpstream) await pullRebase(vaultDir)
   } catch { /* offline/conflict surfaced later */ }
+  // A pull whose rebase hit a conflict (or otherwise stalled) can leave the repo
+  // mid-rebase. Detect that explicitly instead of silently swallowing it, so the
+  // UI can warn the user rather than letting them act on a half-applied tree.
+  if (await isRebaseInProgress(vaultDir)) {
+    warning = 'A previous sync left this vault mid-rebase. Resolve or abort the rebase before making changes.'
+    console.warn(`openExistingVault: ${vaultDir} is mid-rebase`)
+  }
   await VaultManager.registerVault({
     name: manager.config.name,
     path: vaultDir,
     last_opened: new Date().toISOString(),
   })
-  return { name: manager.config.name, path: vaultDir }
+  return { name: manager.config.name, path: vaultDir, ...(warning ? { warning } : {}) }
 }
 
 export async function syncVault(vaultPath: string): Promise<void> {
@@ -516,7 +548,15 @@ export async function connectRemote(
 
 /** Clone a remote vault and register it in the local registry. */
 export async function cloneVault(url: string, destDir: string): Promise<VaultOpenResult> {
-  await coreCloneVault(url, destDir)
+  try {
+    await coreCloneVault(url, destDir)
+  } catch (err) {
+    // validateRemoteUrl / git clone failures (bad scheme, "-"-leading URL,
+    // unreachable remote) surface as a clean, user-facing message instead of a
+    // raw git stderr dump or an option-injection attempt reaching the shell.
+    const msg = err instanceof Error ? err.message : String(err)
+    throw new Error(`Couldn't clone that repository: ${msg}`)
+  }
   let manager
   try {
     manager = await VaultManager.open(destDir)

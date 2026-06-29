@@ -27,6 +27,18 @@ it('shows Approve + Request changes once in review', async () => {
   expect(screen.getByRole('button', { name: /request changes/i })).toBeInTheDocument()
 })
 
+it('ignores a rapid double-click on Start review (single action dispatched)', async () => {
+  // action never resolves so the first call stays in flight across the 2nd click
+  vi.mocked(window.signoff.review.action).mockImplementation(
+    () => new Promise(() => { /* never resolves */ })
+  )
+  render(<ReviewPanel vaultPath="/v" feature="f" type="spec" derivedStatus="pending" record={record({})} workflow={workflow} onActionComplete={() => {}} />)
+  const btn = await screen.findByRole('button', { name: /start review/i })
+  fireEvent.click(btn)
+  fireEvent.click(btn)
+  await waitFor(() => expect(window.signoff.review.action).toHaveBeenCalledTimes(1))
+})
+
 it('a non-member cannot act', async () => {
   vi.mocked(window.signoff.vault.author).mockResolvedValue({ name: 'X', email: 'x@o.c' })
   render(<ReviewPanel vaultPath="/v" feature="f" type="spec" derivedStatus="pending" record={record({})} workflow={workflow} onActionComplete={() => {}} />)
@@ -238,6 +250,22 @@ describe('Reviewer roster with acted/awaiting status', () => {
 
     // Progress summary: 1 of 3 approved
     expect(screen.getByText(/1 of 3 approved/i)).toBeInTheDocument()
+  })
+})
+
+describe('initial data fetch error handling', () => {
+  it('still renders and is usable when author/getRemote/readClaudeMd reject', async () => {
+    vi.mocked(window.signoff.vault.author).mockRejectedValue(new Error('no author'))
+    vi.mocked(window.signoff.vault.getRemote).mockRejectedValue(new Error('no remote'))
+    vi.mocked(window.signoff.project.readClaudeMd).mockRejectedValue(new Error('no claude'))
+    render(
+      <ReviewPanel vaultPath="/v" feature="user-auth" type="spec" derivedStatus="pending" record={record({})} workflow={workflow} onActionComplete={() => {}} />
+    )
+    // The panel renders its status section despite every side fetch failing.
+    expect(screen.getByText(/awaiting approval/i)).toBeInTheDocument()
+    await waitFor(() => screen.getByText('me@o.c'))
+    // Falls back to the configure-remote hint instead of crashing.
+    await waitFor(() => screen.getByText(/configure a remote/i))
   })
 })
 

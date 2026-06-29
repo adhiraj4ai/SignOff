@@ -67,4 +67,37 @@ describe("handleSubmit", () => {
       })
     ).rejects.toThrow(/document_path/);
   });
+
+  it("rejects a path-traversal feature_name", async () => {
+    const projectRoot = path.dirname(vaultPath);
+    await expect(
+      handleSubmit(
+        vaultPath,
+        { feature_name: "../../etc/x", document_type: "spec", document_path: "docs/auth.md" },
+        projectRoot
+      )
+    ).rejects.toThrow(/feature/i);
+  });
+
+  it("rejects an absolute document_path", async () => {
+    const projectRoot = path.dirname(vaultPath);
+    await expect(
+      handleSubmit(
+        vaultPath,
+        { feature_name: "user-auth", document_type: "spec", document_path: "/etc/passwd" },
+        projectRoot
+      )
+    ).rejects.toThrow(/document_path/);
+  });
+
+  it("rejects a document_path that escapes the project root", async () => {
+    const projectRoot = path.dirname(vaultPath);
+    await expect(
+      handleSubmit(
+        vaultPath,
+        { feature_name: "user-auth", document_type: "spec", document_path: "../../etc/x" },
+        projectRoot
+      )
+    ).rejects.toThrow(/document_path|escapes/i);
+  });
 });

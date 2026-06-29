@@ -21,6 +21,16 @@ describe('VaultSwitcher', () => {
     expect(screen.getByText('project-beta')).toBeInTheDocument()
   })
 
+  it('escapes the loading state and shows an error when vault.list fails', async () => {
+    vi.mocked(window.signoff.vault.list).mockRejectedValue(new Error('registry unreadable'))
+    render(<VaultSwitcher onVaultSelected={() => {}} />)
+    expect(screen.getByText(/loading/i)).toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument())
+    expect(screen.getByText(/couldn't load your projects/i)).toBeInTheDocument()
+    // empty list → the "no projects" empty state renders
+    expect(screen.getByText(/no projects/i)).toBeInTheDocument()
+  })
+
   it('calls onVaultSelected with path and name when vault clicked', async () => {
     vi.mocked(window.signoff.vault.list).mockResolvedValue(mockVaults)
     const onSelected = vi.fn()

@@ -35,6 +35,29 @@ describe('useAutoSync', () => {
     expect(window.signoff.vault.sync).toHaveBeenCalledTimes(2)
   })
 
+  it('does not start a concurrent runSync while one is still in-flight', async () => {
+    // A deferred runSync that stays pending across multiple ticks.
+    let resolveSync!: (v: boolean) => void
+    const runSync = vi.fn(
+      () => new Promise<boolean>((r) => { resolveSync = r })
+    )
+    renderHook(() => useAutoSync('/v', 60_000, runSync))
+
+    // First tick fires runSync; it never resolves yet.
+    await vi.advanceTimersByTimeAsync(60_000)
+    expect(runSync).toHaveBeenCalledTimes(1)
+
+    // A second tick arrives while the first is still in-flight — it must be
+    // skipped, not run concurrently.
+    await vi.advanceTimersByTimeAsync(60_000)
+    expect(runSync).toHaveBeenCalledTimes(1)
+
+    // Once the first resolves, a later tick is free to run again.
+    resolveSync(true)
+    await vi.advanceTimersByTimeAsync(60_000)
+    expect(runSync).toHaveBeenCalledTimes(2)
+  })
+
   it('stops the timer on unmount', async () => {
     const { unmount } = renderHook(() => useAutoSync('/v', 60_000))
     await vi.advanceTimersByTimeAsync(60_000)

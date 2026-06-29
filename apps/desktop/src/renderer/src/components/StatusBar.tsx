@@ -73,13 +73,18 @@ export function StatusBar({
       window.signoff.vault.status(vaultPath),
       window.signoff.vault.author(vaultPath),
       window.signoff.vault.syncState(vaultPath),
-    ]).then(([r, s, a, ss]) => {
-      if (!alive) return
-      setRemote(r)
-      setStatus(s)
-      setAuthor(a)
-      setSyncStateData(ss)
-    })
+    ])
+      .then(([r, s, a, ss]) => {
+        if (!alive) return
+        setRemote(r)
+        setStatus(s)
+        setAuthor(a)
+        setSyncStateData(ss)
+      })
+      .catch(() => {
+        // Leave the indicators in their last/empty state instead of throwing an
+        // unhandled rejection; the next syncKey bump retries.
+      })
     return () => {
       alive = false
     }
@@ -108,11 +113,15 @@ export function StatusBar({
   }
 
   async function contribute(): Promise<void> {
-    if (noUpstream && remote) {
-      await window.signoff.vault.publishBranch(vaultPath)
-      onSyncNow()
-    } else if (repo.web) {
-      await window.signoff.openExternal(repo.web)
+    try {
+      if (noUpstream && remote) {
+        await window.signoff.vault.publishBranch(vaultPath)
+        onSyncNow()
+      } else if (repo.web) {
+        await window.signoff.openExternal(repo.web)
+      }
+    } catch {
+      /* best-effort; sync indicator reflects publish failures */
     }
   }
 
@@ -200,7 +209,7 @@ export function StatusBar({
       <Sep />
 
       {/* Docs */}
-      <button className={cls} onClick={() => window.signoff.openExternal(PROJECT_DOCS_URL)} title="Documentation">
+      <button className={cls} onClick={() => { void window.signoff.openExternal(PROJECT_DOCS_URL).catch(() => {}) }} title="Documentation">
         <BookIcon />
         Docs
       </button>

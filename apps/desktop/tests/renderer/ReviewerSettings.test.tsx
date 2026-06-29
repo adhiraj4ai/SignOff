@@ -23,4 +23,24 @@ describe('ReviewerSettings', () => {
     })))
     await waitFor(() => expect(onClose).toHaveBeenCalled())
   })
+
+  it('escapes the loading state and shows an error when workflows.read fails', async () => {
+    vi.mocked(window.signoff.workflows.read).mockRejectedValue(new Error('unreadable'))
+    render(<ReviewerSettings vaultPath="/v" onClose={() => {}} />)
+    expect(screen.getByText(/loading/i)).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByText(/couldn't load reviewer settings/i)).toBeInTheDocument())
+  })
+
+  it('clamps min_approvals to at least 1 when saving', async () => {
+    const onClose = vi.fn()
+    render(<ReviewerSettings vaultPath="/v" onClose={onClose} />)
+    await waitFor(() => screen.getByDisplayValue('lead@org.com'))
+    const minInputs = screen.getAllByRole('spinbutton')
+    // set spec min to 0 (invalid) — should clamp to 1
+    fireEvent.change(minInputs[0], { target: { value: '0' } })
+    fireEvent.click(screen.getByRole('button', { name: /save/i }))
+    await waitFor(() => expect(window.signoff.workflows.write).toHaveBeenCalledWith('/v', expect.objectContaining({
+      spec: expect.objectContaining({ min_approvals: 1 }),
+    })))
+  })
 })

@@ -24,7 +24,15 @@ export function VaultSwitcher({ onVaultSelected }: Props): React.ReactElement {
   const busyRef = useRef(false)
 
   useEffect(() => {
-    window.signoff.vault.list().then(setVaults)
+    window.signoff.vault
+      .list()
+      .then(setVaults)
+      .catch((e) => {
+        // Escape the "Loading…" state on failure: show an empty list + error
+        // rather than spinning forever.
+        setVaults([])
+        setError(`Couldn't load your projects: ${e instanceof Error ? e.message : String(e)}`)
+      })
   }, [])
 
   async function handleOpenVault(): Promise<void> {

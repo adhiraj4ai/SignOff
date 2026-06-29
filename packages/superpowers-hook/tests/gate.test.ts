@@ -145,6 +145,35 @@ describe("evaluateGate", () => {
     expect(decision.allow).toBe(true);
   });
 
+  // --- Non-markdown under a doc root must NOT get the spec free pass --------
+
+  it("does NOT auto-allow a non-.md file under a doc root (hits the code gate)", async () => {
+    // docs/app.ts is under the "docs" doc root but is not a markdown spec/plan.
+    // It must fall through to code-gating, not get a free authoring pass.
+    const decision = await evaluateGate(writeEvent("docs/app.ts"));
+    expect(decision.allow).toBe(false);
+    expect(decision.reason).toMatch(/no active feature|submit a spec/i);
+  });
+
+  it("does NOT auto-allow a .json file under a doc root", async () => {
+    const decision = await evaluateGate(writeEvent("docs/x.json"));
+    expect(decision.allow).toBe(false);
+  });
+
+  it("still auto-allows a .md spec under a doc root", async () => {
+    const decision = await evaluateGate(writeEvent("docs/specs/foo.md"));
+    expect(decision.allow).toBe(true);
+  });
+
+  it("gates a non-.md file under a doc root on the active feature's plan approval", async () => {
+    // With an approved plan + active feature, docs/app.ts is allowed via the code path.
+    await registerDoc("user-auth", "plan", "docs/plans/2026-06-27-user-auth.md");
+    await approve("user-auth", "plan");
+    await writeActiveFeature(projectRoot, { feature: "user-auth", vaultPath });
+    const decision = await evaluateGate(writeEvent("docs/app.ts"));
+    expect(decision.allow).toBe(true);
+  });
+
   // --- Code writes: require active-feature + plan approval -----------------
 
   it("blocks code writes when no active-feature pointer exists", async () => {

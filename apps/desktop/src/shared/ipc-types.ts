@@ -45,6 +45,8 @@ export interface FeatureEntry {
 export interface VaultOpenResult {
   name: string
   path: string
+  /** Non-fatal warning surfaced to the user (e.g. a sync left a rebase stuck). */
+  warning?: string
 }
 
 export interface GitCommit {
@@ -130,7 +132,8 @@ export interface SignoffAPI {
     read(vaultPath: string): Promise<VaultWorkflows>
     write(vaultPath: string, workflows: VaultWorkflows): Promise<void>
   }
-  openExternal(url: string): Promise<void>
+  /** Open an http(s) URL in the OS browser. Non-http(s) URLs are refused. */
+  openExternal(url: string): Promise<{ ok: boolean; error?: string }>
 }
 
 // Augment Window so renderer TypeScript knows about window.signoff
