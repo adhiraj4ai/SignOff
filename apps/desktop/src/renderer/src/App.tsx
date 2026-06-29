@@ -14,7 +14,7 @@ const DOC_TYPES: DocumentType[] = ['spec', 'plan']
 
 type ActionDone = (result?: ReviewResult) => void
 
-function SelectedDocument({
+export function SelectedDocument({
   vaultPath,
   feature,
   type,

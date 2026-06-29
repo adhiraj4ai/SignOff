@@ -253,6 +253,22 @@ describe('Reviewer roster with acted/awaiting status', () => {
   })
 })
 
+describe('initial data fetch error handling', () => {
+  it('still renders and is usable when author/getRemote/readClaudeMd reject', async () => {
+    vi.mocked(window.signoff.vault.author).mockRejectedValue(new Error('no author'))
+    vi.mocked(window.signoff.vault.getRemote).mockRejectedValue(new Error('no remote'))
+    vi.mocked(window.signoff.project.readClaudeMd).mockRejectedValue(new Error('no claude'))
+    render(
+      <ReviewPanel vaultPath="/v" feature="user-auth" type="spec" derivedStatus="pending" record={record({})} workflow={workflow} onActionComplete={() => {}} />
+    )
+    // The panel renders its status section despite every side fetch failing.
+    expect(screen.getByText(/awaiting approval/i)).toBeInTheDocument()
+    await waitFor(() => screen.getByText('me@o.c'))
+    // Falls back to the configure-remote hint instead of crashing.
+    await waitFor(() => screen.getByText(/configure a remote/i))
+  })
+})
+
 describe('Vault access section', () => {
   it('shows the vault clone URL for reviewers when a remote is set', async () => {
     vi.mocked(window.signoff.vault.getRemote).mockResolvedValue('git@github.com:org/proj-signoff.git')

@@ -42,6 +42,33 @@ describe('DocumentPane', () => {
     expect(screen.getAllByText('spec').length).toBeGreaterThan(0)
   })
 
+  it('ignores a stale document.read response that resolves after switching feature (#14)', async () => {
+    // Defer each read so we control resolution order: the OLD feature's read
+    // resolves AFTER the NEW one — the alive guard must drop the stale result.
+    const deferreds: Record<string, (v: string) => void> = {}
+    vi.mocked(window.signoff.document.read).mockImplementation(
+      (_v: string, feature: string) =>
+        new Promise<string>((resolve) => {
+          deferreds[feature] = resolve
+        }),
+    )
+
+    const { rerender } = render(<DocumentPane vaultPath="/vault" feature="old-feature" type="spec" />)
+    // switch to a new feature before the old read resolves
+    rerender(<DocumentPane vaultPath="/vault" feature="new-feature" type="spec" />)
+
+    // newer selection resolves first, then the stale older one resolves late
+    deferreds['new-feature']('# New Feature Spec')
+    await waitFor(() => screen.getByRole('heading', { name: /new feature spec/i }))
+    deferreds['old-feature']('# Old Feature Spec')
+
+    // the stale response must never replace the current content
+    await waitFor(() =>
+      expect(screen.queryByRole('heading', { name: /old feature spec/i })).not.toBeInTheDocument(),
+    )
+    expect(screen.getByRole('heading', { name: /new feature spec/i })).toBeInTheDocument()
+  })
+
   it('surfaces a save error and keeps the editor open when write fails', async () => {
     vi.mocked(window.signoff.document.write).mockRejectedValue(new Error('disk full'))
     render(<DocumentPane vaultPath="/vault" feature="user-auth" type="spec" />)

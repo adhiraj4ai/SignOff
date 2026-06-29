@@ -133,14 +133,20 @@ export function DocumentPane({
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
+    let alive = true
     setContent(null)
     setView('read')
     window.signoff.document
       .read(vaultPath, feature, type)
-      .then(setContent)
-      .catch((err) => {
-        setContent(`Error loading document: ${err instanceof Error ? err.message : String(err)}`)
+      .then((c) => {
+        if (alive) setContent(c)
       })
+      .catch((err) => {
+        if (alive) setContent(`Error loading document: ${err instanceof Error ? err.message : String(err)}`)
+      })
+    return () => {
+      alive = false
+    }
   }, [vaultPath, feature, type])
 
   if (content === null) {

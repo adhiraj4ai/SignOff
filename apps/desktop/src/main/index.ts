@@ -35,20 +35,19 @@ import {
   cloneVault,
   getSyncStateBridge,
 } from './vault-bridge.js'
+import {
+  isAllowedExternalUrl,
+  isAllowedNavigation,
+  contentSecurityPolicy,
+  rendererWebPreferences,
+} from './security.js'
 
 function createWindow(): void {
   const win = new BrowserWindow({
     width: 1200,
     height: 800,
     title: 'Signoff',
-    webPreferences: {
-      preload: join(appDir, '../preload/index.cjs'),
-      contextIsolation: true,
-      nodeIntegration: false,
-      // The preload uses only contextBridge + ipcRenderer, both of which work
-      // under the OS sandbox, so we can enable it for renderer hardening.
-      sandbox: true,
-    },
+    webPreferences: rendererWebPreferences(join(appDir, '../preload/index.cjs')),
   })
 
   // Hardening: the renderer is a bundled local app and should never open new
@@ -56,11 +55,7 @@ function createWindow(): void {
   // link must go through the validated app:open-external IPC instead.
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
   win.webContents.on('will-navigate', (event, url) => {
-    const current = win.webContents.getURL()
-    // Allow only same-origin (dev server) navigation, or in-page file reloads.
-    const sameOrigin =
-      current !== '' && new URL(url).origin === new URL(current).origin
-    if (!sameOrigin) event.preventDefault()
+    if (!isAllowedNavigation(url, win.webContents.getURL())) event.preventDefault()
   })
 
   if (process.env['ELECTRON_RENDERER_URL']) {
@@ -79,19 +74,7 @@ function createWindow(): void {
  */
 function applyContentSecurityPolicy(): void {
   const dev = !!process.env['ELECTRON_RENDERER_URL']
-  const scriptSrc = dev ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'" : "script-src 'self'"
-  const csp = [
-    "default-src 'self'",
-    scriptSrc,
-    "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data:",
-    "font-src 'self' data:",
-    "connect-src 'self'" + (dev ? ' ws:' : ''),
-    "object-src 'none'",
-    "frame-src 'none'",
-    "base-uri 'self'",
-    "form-action 'none'",
-  ].join('; ')
+  const csp = contentSecurityPolicy(dev)
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     callback({
       responseHeaders: {
@@ -126,16 +109,10 @@ function registerIpcHandlers(): void {
     // Only ever hand http(s) URLs to the OS. A renderer-supplied value with any
     // other scheme (file:, javascript:, smb:, custom protocol handlers, …)
     // could trigger arbitrary local handlers — refuse it.
-    let parsed: URL
-    try {
-      parsed = new URL(String(url))
-    } catch {
-      return { ok: false, error: 'invalid URL' }
+    if (!isAllowedExternalUrl(String(url))) {
+      return { ok: false, error: `refused to open ${String(url)}` }
     }
-    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-      return { ok: false, error: `refused to open ${parsed.protocol} URL` }
-    }
-    await shell.openExternal(parsed.toString())
+    await shell.openExternal(new URL(String(url)).toString())
     return { ok: true }
   })
   ipcMain.handle('features:list', (_e, { vaultPath }) => listFeatures(vaultPath))
