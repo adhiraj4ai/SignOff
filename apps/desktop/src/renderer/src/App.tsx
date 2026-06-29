@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { VaultSwitcher } from './components/VaultSwitcher'
 import { Sidebar } from './components/Sidebar'
 import { DocumentPane } from './components/DocumentPane'
@@ -36,27 +36,35 @@ function SelectedDocument({
   const [markdown, setMarkdown] = useState('')
 
   useEffect(() => {
+    // `alive` guards against a stale/late response overwriting newer state (or
+    // setState after unmount) when vaultPath/feature/type change rapidly.
+    let alive = true
     setRecord(undefined)
     Promise.all([
       window.signoff.document.getApproval(vaultPath, feature, type),
       window.signoff.workflows.read(vaultPath),
     ])
       .then(([r, w]) => {
+        if (!alive) return
         setRecord(r)
         setWorkflow(w?.[type])
       })
       .catch(() => {
+        if (!alive) return
         setRecord(null)
         setWorkflow(undefined)
       })
+    return () => { alive = false }
   }, [vaultPath, feature, type, reload])
 
   useEffect(() => {
+    let alive = true
     setMarkdown('')
     window.signoff.document
       .read(vaultPath, feature, type)
-      .then(setMarkdown)
-      .catch(() => setMarkdown(''))
+      .then((m) => { if (alive) setMarkdown(m) })
+      .catch(() => { if (alive) setMarkdown('') })
+    return () => { alive = false }
   }, [vaultPath, feature, type])
 
   // refetch this document's record after an action, then bubble up
@@ -138,29 +146,41 @@ export function App(): React.ReactElement {
   const vaultPath = state?.vaultPath ?? null
   const bump = useCallback(() => setSyncKey((k) => k + 1), [])
 
-  const onAutoSynced = useCallback(() => {
-    setLastSyncedAt(Date.now())
-    bump()
-  }, [bump])
-  useAutoSync(vaultPath, autoSyncMs, onAutoSynced)
-
-  const syncNow = useCallback(async () => {
-    if (!vaultPath) return
+  // Single in-flight guard: syncNow, the auto-sync tick, and any other sync
+  // trigger all funnel through this. Only one pull+push runs at a time; a
+  // concurrent request is skipped (returns false) rather than racing.
+  const syncInFlight = useRef(false)
+  const runSync = useCallback(async (): Promise<boolean> => {
+    if (!vaultPath || syncInFlight.current) return false
+    syncInFlight.current = true
     setSyncing(true)
     try {
-      await window.signoff.vault.sync(vaultPath)
-    } catch {
-      /* surfaced by indicator */
+      try {
+        await window.signoff.vault.sync(vaultPath)
+      } catch {
+        /* surfaced by indicator */
+      }
+      try {
+        await window.signoff.vault.push(vaultPath)
+      } catch {
+        /* best-effort */
+      }
+      setLastSyncedAt(Date.now())
+      bump()
+      return true
+    } finally {
+      setSyncing(false)
+      syncInFlight.current = false
     }
-    try {
-      await window.signoff.vault.push(vaultPath)
-    } catch {
-      /* best-effort */
-    }
-    setLastSyncedAt(Date.now())
-    setSyncing(false)
-    bump()
   }, [vaultPath, bump])
+
+  // Auto-sync ticks go through runSync so they skip while a manual/other sync
+  // is already running; runSync itself updates lastSyncedAt + bumps.
+  useAutoSync(vaultPath, autoSyncMs, runSync)
+
+  const syncNow = useCallback(async () => {
+    await runSync()
+  }, [runSync])
 
   const setAutoSync = useCallback((ms: number) => {
     setAutoSyncMs(ms)
@@ -227,7 +247,7 @@ export function App(): React.ReactElement {
             </div>
           ) : (
             <SelectedDocument
-              key={active.feature}
+              key={`${active.feature}:${active.type}`}
               vaultPath={state.vaultPath}
               feature={active.feature}
               type={active.type}

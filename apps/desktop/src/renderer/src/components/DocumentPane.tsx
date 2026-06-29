@@ -127,6 +127,7 @@ export function DocumentPane({
   const [view, setView] = useState<ViewMode>('read')
   const [draft, setDraft] = useState('')
   const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [fullWidth, setFullWidth] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -156,11 +157,15 @@ export function DocumentPane({
 
   async function save(): Promise<void> {
     setSaving(true)
+    setSaveError(null)
     try {
       const result = await window.signoff.document.write(vaultPath, feature, type, draft)
       setContent(draft)
       setView('read')
       onSaved?.(result)
+    } catch (e) {
+      // Keep the editor open with the draft intact so the user can retry.
+      setSaveError(e instanceof Error ? e.message : String(e))
     } finally {
       setSaving(false)
     }
@@ -285,6 +290,11 @@ export function DocumentPane({
               {viewBtn('split', 'Split', SplitIcon)}
               {viewBtn('edit', 'Edit', CodeIcon)}
             </div>
+            {saveError && (
+              <span className="text-[11.5px] text-stop max-w-[280px] truncate" title={saveError} role="alert">
+                {saveError}
+              </span>
+            )}
             {dirty && (
               <>
                 <span className="w-px h-5 bg-border mx-1" />

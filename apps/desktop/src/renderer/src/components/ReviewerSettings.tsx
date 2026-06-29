@@ -13,29 +13,53 @@ export function ReviewerSettings({ vaultPath, onClose }: Props): React.ReactElem
   const [planApprovers, setPlanApprovers] = useState('')
   const [planMin, setPlanMin] = useState(1)
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // Coerce any user/stored value to a valid minimum (>= 1).
+  const clampMin = (v: number | string): number => Math.max(1, Number(v) || 1)
 
   useEffect(() => {
-    window.signoff.workflows.read(vaultPath).then((w) => {
-      setWorkflows(w)
-      setSpecApprovers(w.spec.required_approvers.join(', '))
-      setSpecMin(w.spec.min_approvals)
-      setPlanApprovers(w.plan.required_approvers.join(', '))
-      setPlanMin(w.plan.min_approvals)
-    })
+    let alive = true
+    window.signoff.workflows
+      .read(vaultPath)
+      .then((w) => {
+        if (!alive) return
+        setWorkflows(w)
+        setSpecApprovers(w.spec.required_approvers.join(', '))
+        setSpecMin(clampMin(w.spec.min_approvals))
+        setPlanApprovers(w.plan.required_approvers.join(', '))
+        setPlanMin(clampMin(w.plan.min_approvals))
+      })
+      .catch((e) => {
+        // Escape the "Loading…" state: fall back to defaults + show an error.
+        if (!alive) return
+        setWorkflows({
+          spec: { required_approvers: [], min_approvals: 1 },
+          plan: { required_approvers: [], min_approvals: 1 },
+        })
+        setError(`Couldn't load reviewer settings: ${e instanceof Error ? e.message : String(e)}`)
+      })
+    return () => { alive = false }
   }, [vaultPath])
 
   async function handleSave(): Promise<void> {
     if (!workflows) return
     setSaving(true)
+    setError(null)
     const parseEmails = (csv: string): string[] =>
       csv.split(',').map((s) => s.trim()).filter(Boolean)
     const next: VaultWorkflows = {
-      spec: { ...workflows.spec, required_approvers: parseEmails(specApprovers), min_approvals: specMin },
-      plan: { ...workflows.plan, required_approvers: parseEmails(planApprovers), min_approvals: planMin },
+      spec: { ...workflows.spec, required_approvers: parseEmails(specApprovers), min_approvals: clampMin(specMin) },
+      plan: { ...workflows.plan, required_approvers: parseEmails(planApprovers), min_approvals: clampMin(planMin) },
     }
-    await window.signoff.workflows.write(vaultPath, next)
-    setSaving(false)
-    onClose()
+    try {
+      await window.signoff.workflows.write(vaultPath, next)
+      onClose()
+    } catch (e) {
+      setError(`Couldn't save reviewer settings: ${e instanceof Error ? e.message : String(e)}`)
+    } finally {
+      setSaving(false)
+    }
   }
 
   if (!workflows) {
@@ -66,7 +90,7 @@ export function ReviewerSettings({ vaultPath, onClose }: Props): React.ReactElem
             type="number"
             min={1}
             value={specMin}
-            onChange={(e) => setSpecMin(Number(e.target.value))}
+            onChange={(e) => setSpecMin(clampMin(e.target.value))}
             className="w-20 rounded-lg border border-border bg-app px-3 py-1.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-iris/30"
           />
         </label>
@@ -92,11 +116,17 @@ export function ReviewerSettings({ vaultPath, onClose }: Props): React.ReactElem
             type="number"
             min={1}
             value={planMin}
-            onChange={(e) => setPlanMin(Number(e.target.value))}
+            onChange={(e) => setPlanMin(clampMin(e.target.value))}
             className="w-20 rounded-lg border border-border bg-app px-3 py-1.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-iris/30"
           />
         </label>
       </section>
+
+      {error && (
+        <p className="text-[12.5px] text-stop bg-stop-soft border border-stop/20 rounded-lg px-3 py-2">
+          {error}
+        </p>
+      )}
 
       <div className="flex gap-2 justify-end">
         <button

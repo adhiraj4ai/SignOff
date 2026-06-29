@@ -106,6 +106,13 @@ describe('openExistingVault', () => {
   it('throws if path is not a vault', async () => {
     await expect(openExistingVault(path.join(tmpDir, 'notavault'))).rejects.toThrow()
   })
+
+  it('surfaces a warning when the vault is left mid-rebase', async () => {
+    // simulate a stuck rebase: git leaves a .git/rebase-merge dir behind
+    await fs.mkdir(path.join(vaultPath, '.git', 'rebase-merge'), { recursive: true })
+    const result = await openExistingVault(vaultPath)
+    expect(result.warning).toMatch(/mid-rebase/i)
+  })
 })
 
 describe('listFeatures', () => {
@@ -406,6 +413,12 @@ describe('cloneVault bridge', () => {
     expect((await fs.stat(path.join(dest, 'config.json'))).isFile()).toBe(true)
   })
 
+  it('cloneVault rejects an option-injection URL with a friendly error (no raw throw)', async () => {
+    await expect(
+      cloneVaultBridge('--upload-pack=touch /tmp/pwned', path.join(tmpDir, 'inject'))
+    ).rejects.toThrow(/Couldn't clone that repository/i)
+  })
+
   it('cloneVault on a non-vault repo errors', async () => {
     const plain = path.join(tmpDir, 'plain.git')
     await simpleGit().init(['--bare', plain])
@@ -443,6 +456,41 @@ describe('transact network-degrade and divergent-conflict', () => {
     // The reviewer entry must be present locally (change not lost)
     const rec = await getDocumentApproval(vaultPath, 'net-feature', 'spec')
     expect(rec?.reviewers['dev@org.com']?.status).toBe('in_review')
+  })
+
+  it('push-reject on a single commit: rebases onto the advanced remote and retries (no data loss)', async () => {
+    // shared remote; vault1 (vaultPath) is online + tracking
+    const remote = path.join(tmpDir, 'race-remote.git')
+    await simpleGit().init(['--bare', remote])
+    await simpleGit(vaultPath).addRemote('origin', remote)
+    await simpleGit(vaultPath).push(['-u', 'origin', (await simpleGit(vaultPath).status()).current ?? 'master'])
+
+    await seedDoc('race-feature', 'spec')
+    await simpleGit(vaultPath).push()
+
+    // second clone advances the remote with an UNRELATED commit between
+    // vault1's pull and push window
+    const second = path.join(tmpDir, 'race-second')
+    await simpleGit().clone(remote, second)
+    await simpleGit(second).addConfig('user.email', 'rev2@org.com')
+    await simpleGit(second).addConfig('user.name', 'Rev Two')
+    await fs.writeFile(path.join(second, 'note.txt'), 'remote advance\n')
+    await simpleGit(second).add(['note.txt'])
+    await simpleGit(second).commit('competing', undefined, { '--author': 'Rev Two <rev2@org.com>' })
+    await simpleGit(second).push()
+
+    // vault1's reviewAction: its push will reject (remote advanced); the loop
+    // re-pulls/rebases the single review commit and retries → pushed:true
+    await reviewAction(vaultPath, 'race-feature', 'spec', 'start_review')
+    const result = await reviewAction(vaultPath, 'race-feature', 'spec', 'approve')
+    expect(result.conflict).toBeFalsy()
+
+    // the review decision survived (no hard reset discarded it) and the remote
+    // advance is integrated
+    const rec = await getDocumentApproval(vaultPath, 'race-feature', 'spec')
+    expect(rec?.reviewers['dev@org.com']?.status).toBe('approved')
+    const after = await getVaultStatus(vaultPath)
+    expect(after.ahead).toBe(0)
   })
 
   it('divergent conflict (ahead>1): reviewAction resolves with conflict:true (not thrown)', async () => {

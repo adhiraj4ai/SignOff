@@ -34,20 +34,29 @@ function ThreadItem({
   const [replyBody, setReplyBody] = useState('')
   const [replyOpen, setReplyOpen] = useState(false)
   const [posting, setPosting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   async function handleResolve(): Promise<void> {
-    const result = await window.signoff.comments.setResolved(vaultPath, feature, type, thread.id, !thread.resolved)
-    onRefresh(result)
+    setError(null)
+    try {
+      const result = await window.signoff.comments.setResolved(vaultPath, feature, type, thread.id, !thread.resolved)
+      onRefresh(result)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+    }
   }
 
   async function handleReply(): Promise<void> {
     if (!replyBody.trim()) return
     setPosting(true)
+    setError(null)
     try {
       const result = await window.signoff.comments.addReply(vaultPath, feature, type, thread.id, replyBody.trim())
       onRefresh(result)
       setReplyBody('')
       setReplyOpen(false)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
     } finally {
       setPosting(false)
     }
@@ -78,6 +87,7 @@ function ThreadItem({
           {thread.resolved ? 'Resolved' : 'Resolve'}
         </button>
       </div>
+      {error && <p className="mt-1.5 text-[11px] text-stop" role="alert">{error}</p>}
       {replyOpen && (
         <div className="mt-2 flex flex-col gap-1.5">
           <textarea
@@ -119,6 +129,7 @@ function ThreadGroup({
   const [composerOpen, setComposerOpen] = useState(false)
   const [body, setBody] = useState('')
   const [posting, setPosting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const sectionLabel = heading ? heading.text : 'General'
   const slug = heading ? heading.slug : ''
@@ -127,11 +138,14 @@ function ThreadGroup({
   async function handlePost(): Promise<void> {
     if (!body.trim()) return
     setPosting(true)
+    setError(null)
     try {
       const result = await window.signoff.comments.addThread(vaultPath, feature, type, slug, line, body.trim())
       onRefresh(result)
       setBody('')
       setComposerOpen(false)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
     } finally {
       setPosting(false)
     }
@@ -176,6 +190,7 @@ function ThreadGroup({
               Cancel
             </button>
           </div>
+          {error && <p className="text-[11px] text-stop" role="alert">{error}</p>}
         </div>
       )}
 

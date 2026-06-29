@@ -27,6 +27,18 @@ it('shows Approve + Request changes once in review', async () => {
   expect(screen.getByRole('button', { name: /request changes/i })).toBeInTheDocument()
 })
 
+it('ignores a rapid double-click on Start review (single action dispatched)', async () => {
+  // action never resolves so the first call stays in flight across the 2nd click
+  vi.mocked(window.signoff.review.action).mockImplementation(
+    () => new Promise(() => { /* never resolves */ })
+  )
+  render(<ReviewPanel vaultPath="/v" feature="f" type="spec" derivedStatus="pending" record={record({})} workflow={workflow} onActionComplete={() => {}} />)
+  const btn = await screen.findByRole('button', { name: /start review/i })
+  fireEvent.click(btn)
+  fireEvent.click(btn)
+  await waitFor(() => expect(window.signoff.review.action).toHaveBeenCalledTimes(1))
+})
+
 it('a non-member cannot act', async () => {
   vi.mocked(window.signoff.vault.author).mockResolvedValue({ name: 'X', email: 'x@o.c' })
   render(<ReviewPanel vaultPath="/v" feature="f" type="spec" derivedStatus="pending" record={record({})} workflow={workflow} onActionComplete={() => {}} />)

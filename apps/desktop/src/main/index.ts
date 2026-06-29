@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, shell, session } from 'electron'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'node:url'
 
@@ -45,13 +45,61 @@ function createWindow(): void {
       preload: join(appDir, '../preload/index.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
+      // The preload uses only contextBridge + ipcRenderer, both of which work
+      // under the OS sandbox, so we can enable it for renderer hardening.
+      sandbox: true,
     },
   })
+
+  // Hardening: the renderer is a bundled local app and should never open new
+  // windows or navigate away from its own origin. Block both — any external
+  // link must go through the validated app:open-external IPC instead.
+  win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
+  win.webContents.on('will-navigate', (event, url) => {
+    const current = win.webContents.getURL()
+    // Allow only same-origin (dev server) navigation, or in-page file reloads.
+    const sameOrigin =
+      current !== '' && new URL(url).origin === new URL(current).origin
+    if (!sameOrigin) event.preventDefault()
+  })
+
   if (process.env['ELECTRON_RENDERER_URL']) {
     win.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
     win.loadFile(join(appDir, '../renderer/index.html'))
   }
+}
+
+/**
+ * Apply a strict Content-Security-Policy to every renderer response. The app is
+ * fully bundled (Vite inlines mermaid/katex/highlight.js and their assets), so
+ * no remote origins are needed. We allow inline styles/data: images because the
+ * bundler emits inline <style> tags and SVG data: URIs (e.g. the favicon), and
+ * 'unsafe-eval' is required by the dev server's HMR runtime only.
+ */
+function applyContentSecurityPolicy(): void {
+  const dev = !!process.env['ELECTRON_RENDERER_URL']
+  const scriptSrc = dev ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'" : "script-src 'self'"
+  const csp = [
+    "default-src 'self'",
+    scriptSrc,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data:",
+    "font-src 'self' data:",
+    "connect-src 'self'" + (dev ? ' ws:' : ''),
+    "object-src 'none'",
+    "frame-src 'none'",
+    "base-uri 'self'",
+    "form-action 'none'",
+  ].join('; ')
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [csp],
+      },
+    })
+  })
 }
 
 function registerIpcHandlers(): void {
@@ -74,7 +122,22 @@ function registerIpcHandlers(): void {
   ipcMain.handle('vault:push', (_e, { vaultPath }) => pushVault(vaultPath))
   ipcMain.handle('vault:publish-branch', (_e, { vaultPath }) => publishBranch(vaultPath))
   ipcMain.handle('vault:author', (_e, { vaultPath }) => getVaultAuthor(vaultPath))
-  ipcMain.handle('app:open-external', (_e, { url }) => shell.openExternal(url))
+  ipcMain.handle('app:open-external', async (_e, { url }) => {
+    // Only ever hand http(s) URLs to the OS. A renderer-supplied value with any
+    // other scheme (file:, javascript:, smb:, custom protocol handlers, …)
+    // could trigger arbitrary local handlers — refuse it.
+    let parsed: URL
+    try {
+      parsed = new URL(String(url))
+    } catch {
+      return { ok: false, error: 'invalid URL' }
+    }
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return { ok: false, error: `refused to open ${parsed.protocol} URL` }
+    }
+    await shell.openExternal(parsed.toString())
+    return { ok: true }
+  })
   ipcMain.handle('features:list', (_e, { vaultPath }) => listFeatures(vaultPath))
   ipcMain.handle('document:read', (_e, { vaultPath, feature, type }) => readDocument(vaultPath, feature, type))
   ipcMain.handle('document:write', (_e, { vaultPath, feature, type, content }) =>
@@ -96,6 +159,7 @@ function registerIpcHandlers(): void {
 }
 
 app.whenReady().then(() => {
+  applyContentSecurityPolicy()
   registerIpcHandlers()
   createWindow()
 })

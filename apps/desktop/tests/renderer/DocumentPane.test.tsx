@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { DocumentPane } from '@renderer/components/DocumentPane'
 import type { ApprovalRecord } from '@shared/ipc-types'
 
@@ -40,5 +40,20 @@ describe('DocumentPane', () => {
     await waitFor(() => screen.getByText('User Auth'))
     // the type tab "spec" (lowercase text, capitalized via CSS) sits beside the name
     expect(screen.getAllByText('spec').length).toBeGreaterThan(0)
+  })
+
+  it('surfaces a save error and keeps the editor open when write fails', async () => {
+    vi.mocked(window.signoff.document.write).mockRejectedValue(new Error('disk full'))
+    render(<DocumentPane vaultPath="/vault" feature="user-auth" type="spec" />)
+    await waitFor(() => screen.getByRole('heading', { name: /user auth spec/i }))
+    // enter edit mode
+    fireEvent.click(screen.getByRole('button', { name: /^edit$/i }))
+    const textarea = await screen.findByRole('textbox')
+    fireEvent.change(textarea, { target: { value: '# changed content' } })
+    // Save appears once dirty
+    fireEvent.click(await screen.findByRole('button', { name: /^save$/i }))
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/disk full/i))
+    // editor still open (textarea still present, content not committed to read view)
+    expect(screen.getByRole('textbox')).toBeInTheDocument()
   })
 })
