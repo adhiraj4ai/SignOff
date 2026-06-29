@@ -1,9 +1,11 @@
 import {
   VaultManager,
+  validateFeatureName,
   type DocumentType,
   type PublishResult,
 } from "@signoff/vault-core";
 import { resolveGitAuthor } from "./git-author.js";
+import { validateDocumentPath } from "./validate-input.js";
 
 /**
  * Submit a document that already lives in the vault (specs/ or plans/) for
@@ -11,7 +13,8 @@ import { resolveGitAuthor } from "./git-author.js";
  */
 export async function handleSubmit(
   vaultPath: string,
-  args: unknown
+  args: unknown,
+  projectRoot: string = process.cwd()
 ): Promise<PublishResult> {
   if (typeof args !== "object" || args === null) {
     throw new Error("args must be a plain object");
@@ -25,9 +28,11 @@ export async function handleSubmit(
       `document_type must be "spec" or "plan", got: ${String(document_type)}`
     );
   }
+  validateFeatureName(feature_name);
   if (typeof document_path !== "string" || document_path.length === 0) {
     throw new Error("document_path must be a non-empty string (project-relative path to the doc)");
   }
+  validateDocumentPath(document_path, projectRoot);
 
   const { name, email } = await resolveGitAuthor(vaultPath);
   const vault = await VaultManager.open(vaultPath);

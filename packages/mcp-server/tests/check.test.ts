@@ -112,6 +112,24 @@ describe("handleCheck", () => {
     expect(result.status).toBe("in_review");
   });
 
+  it("reports stale: true when a remote is configured but the pull fails", async () => {
+    const projectRoot = path.dirname(vaultPath);
+    await fs.writeFile(path.join(projectRoot, "spec.md"), "# Spec\n");
+    const vault = await VaultManager.open(vaultPath);
+    await vault.submitForReview("user-auth", "spec", "spec.md", "dev@org.com", "Dev");
+
+    // Add a remote that points nowhere reachable so `git pull --rebase` fails.
+    // hasRemote() is then true, so freshness cannot be confirmed → stale: true.
+    const { simpleGit } = await import("simple-git");
+    await simpleGit(vaultPath).addRemote("origin", path.join(tmpDir, "does-not-exist.git"));
+
+    const result = await handleCheck(vaultPath, {
+      feature_name: "user-auth",
+      document_type: "spec",
+    });
+    expect(result.stale).toBe(true);
+  });
+
   it("throws if document_type is invalid", async () => {
     await expect(
       handleCheck(vaultPath, { feature_name: "user-auth", document_type: "brief" })

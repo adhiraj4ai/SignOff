@@ -1,10 +1,12 @@
 import {
   VaultManager,
   writeActiveFeature,
+  validateFeatureName,
   type DocumentType,
   type PublishResult,
 } from "@signoff/vault-core";
 import { resolveGitAuthor } from "./git-author.js";
+import { validateDocumentPath } from "./validate-input.js";
 
 export async function handlePublish(
   vaultPath: string,
@@ -28,9 +30,11 @@ export async function handlePublish(
       `document_type must be "spec" or "plan", got: ${String(document_type)}`
     );
   }
+  validateFeatureName(feature_name);
   if (typeof document_path !== "string" || document_path.length === 0) {
     throw new Error("document_path must be a non-empty string (project-relative path to the doc)");
   }
+  validateDocumentPath(document_path, projectRoot);
 
   const resolvedType = document_type as DocumentType;
 
