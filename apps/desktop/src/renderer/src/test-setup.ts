@@ -37,6 +37,7 @@ const mockSignoff: SignoffAPI = {
     connectRemote: vi.fn(),
     clone: vi.fn(),
     syncState: vi.fn().mockResolvedValue({ branch: 'main', hasRemote: false, hasUpstream: false, ahead: 0, behind: 0 }),
+    connectClaude: vi.fn(),
   },
   features: {
     list: vi.fn(),

@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { mergeSignoffSettings } from '../src/main/connect-claude.js'
+import { mergeSignoffSettings, connectClaudeCode } from '../src/main/connect-claude.js'
+import os from 'node:os'
+import path from 'node:path'
+import fs from 'node:fs/promises'
 
 const VAULT = '/home/me/project/.signoff'
 const MATCHER = 'Write|Edit|MultiEdit|NotebookEdit'
@@ -42,5 +45,33 @@ describe('mergeSignoffSettings', () => {
     )
     expect(signoffHooks).toHaveLength(1)
     expect(Object.keys(twice.mcpServers!)).toEqual(['signoff'])
+  })
+})
+
+describe('connectClaudeCode (I/O)', () => {
+  it('writes a merged settings.json under the project root (vault parent)', async () => {
+    const projectRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'signoff-connect-'))
+    const vaultPath = path.join(projectRoot, '.signoff')
+    await fs.mkdir(vaultPath, { recursive: true })
+
+    const { settingsPath } = await connectClaudeCode(vaultPath)
+    expect(settingsPath).toBe(path.join(projectRoot, '.claude', 'settings.json'))
+
+    const written = JSON.parse(await fs.readFile(settingsPath, 'utf-8'))
+    expect((written.mcpServers.signoff.args as string[])).toContain(vaultPath)
+    expect(written.hooks.PreToolUse[0].matcher).toBe('Write|Edit|MultiEdit|NotebookEdit')
+  })
+
+  it('preserves a pre-existing settings.json on connect', async () => {
+    const projectRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'signoff-connect-'))
+    const vaultPath = path.join(projectRoot, '.signoff')
+    const claudeDir = path.join(projectRoot, '.claude')
+    await fs.mkdir(claudeDir, { recursive: true })
+    await fs.writeFile(path.join(claudeDir, 'settings.json'), JSON.stringify({ model: 'opus' }))
+
+    await connectClaudeCode(vaultPath)
+    const written = JSON.parse(await fs.readFile(path.join(claudeDir, 'settings.json'), 'utf-8'))
+    expect(written.model).toBe('opus')
+    expect(written.mcpServers.signoff).toBeTruthy()
   })
 })
