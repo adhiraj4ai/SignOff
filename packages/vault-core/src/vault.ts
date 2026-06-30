@@ -20,6 +20,9 @@ import {
   hashContent,
   manifestRelPath,
   projectRootOf,
+  ensureCategory,
+  setFeatureCategory,
+  setFeatureTags,
 } from "./manifest.js";
 
 const DEFAULT_WORKFLOWS = {
@@ -111,9 +114,19 @@ export class VaultManager {
     type: DocumentType,
     srcRelPath: string,
     authorEmail: string,
-    authorName: string
+    authorName: string,
+    opts?: { category?: string; tags?: string[] }
   ): Promise<PublishResult> {
-    const manifest = setFeatureDoc(await readManifest(this._vaultPath), featureName, type, srcRelPath);
+    let manifest = setFeatureDoc(await readManifest(this._vaultPath), featureName, type, srcRelPath);
+    // Author suggestions: category only when unset (reviewer wins); tags union in.
+    if (opts?.category && !manifest.features[featureName]?.category) {
+      const ensured = ensureCategory(manifest, opts.category);
+      manifest = setFeatureCategory(ensured.manifest, featureName, ensured.id);
+    }
+    if (opts?.tags?.length) {
+      const current = manifest.features[featureName]?.tags ?? [];
+      manifest = setFeatureTags(manifest, featureName, [...current, ...opts.tags]);
+    }
     await writeManifest(this._vaultPath, manifest);
     const sha = await this.recordSubmission(featureName, type, srcRelPath, authorEmail, authorName);
     return {
@@ -130,9 +143,10 @@ export class VaultManager {
     featureName: string,
     type: DocumentType,
     authorEmail: string,
-    authorName: string
+    authorName: string,
+    opts?: { category?: string; tags?: string[] }
   ): Promise<PublishResult> {
-    return this.submitForReview(featureName, type, srcRelPath, authorEmail, authorName);
+    return this.submitForReview(featureName, type, srcRelPath, authorEmail, authorName, opts);
   }
 
   private async recordSubmission(
