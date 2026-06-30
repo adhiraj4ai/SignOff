@@ -84,7 +84,7 @@ export async function getApprovalStatus(
     const wf = getWorkflowForType(await readWorkflows(vaultPath), type);
     required = wf.required_approvers;
     mode = wf.approval_mode;
-    minApprovals = wf.min_approvals;
+    minApprovals = wf.min_approvals ?? 1;
   } catch {
     required = null;
   }
