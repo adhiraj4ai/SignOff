@@ -16,6 +16,7 @@ import type {
   SyncState,
   Category,
   CategoryColor,
+  Tier,
 } from '@signoff/vault-core'
 
 export type {
@@ -36,6 +37,7 @@ export type {
   SyncState,
   Category,
   CategoryColor,
+  Tier,
 }
 
 // Value re-exports (runtime helpers shared by main + renderer). Imported from the
@@ -43,12 +45,17 @@ export type {
 // not pull in vault-core's git/simple-git (Node-only) code.
 export { CATEGORY_COLORS, slugify, normalizeTags } from '@signoff/vault-core/categories'
 
+// Tier keys as a runtime constant (mirrors vault-core's TIER_KEYS but inlined here
+// to avoid pulling in the Node-only vault-core barrel into the renderer bundle).
+export const TIER_KEYS: Tier[] = ['light', 'standard', 'heavy']
+
 export interface FeatureEntry {
   name: string
   spec: ApprovalStatus | 'not_found'
   plan: ApprovalStatus | 'not_found'
   category: Category | null
   tags: string[]
+  tier: Tier
 }
 
 /** Result of creating/opening a vault: the vault's display name and the
@@ -92,7 +99,7 @@ export type IpcChannels =
   | 'vault:connect-remote' | 'vault:clone' | 'vault:sync-state' | 'vault:connect-claude'
   | 'features:list'
   | 'categories:list' | 'categories:upsert' | 'categories:remove'
-  | 'feature:set-category' | 'feature:set-tags'
+  | 'feature:set-category' | 'feature:set-tags' | 'feature:set-tier'
   | 'document:read' | 'document:write' | 'document:get-approval' | 'document:is-stale'
   | 'review:action'
   | 'comments:read' | 'comments:add-thread' | 'comments:add-reply' | 'comments:set-resolved'
@@ -125,6 +132,7 @@ export interface SignoffAPI {
     list(vaultPath: string): Promise<FeatureEntry[]>
     setCategory(vaultPath: string, feature: string, categoryId: string | null): Promise<ReviewResult>
     setTags(vaultPath: string, feature: string, tags: string[]): Promise<ReviewResult>
+    setTier(vaultPath: string, feature: string, tier: Tier): Promise<ReviewResult>
   }
   categories: {
     list(vaultPath: string): Promise<Category[]>

@@ -3,6 +3,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 import type { DocumentType } from "./types.js";
 import type { Category, CategoryColor } from "./categories.js";
+import type { Tier } from "./tiers.js";
 import { CATEGORY_COLORS, slugify, normalizeTags } from "./categories.js";
 import { writeJsonAtomic, parseJsonOrThrow } from "./fsutil.js";
 
@@ -11,6 +12,7 @@ export interface FeatureDocs {
   plan?: string;
   category?: string;   // Category.id; absent ⇒ Uncategorized
   tags?: string[];     // normalized free-form labels
+  tier?: string;       // Tier level; absent ⇒ "standard"
 }
 
 export interface Manifest {
@@ -169,4 +171,12 @@ export function ensureCategory(
 
   const manifest = upsertCategory(m, { id, name: name.trim(), color: chosen });
   return { manifest, id };
+}
+
+export function setFeatureTier(m: Manifest, feature: string, tier: Tier | null): Manifest {
+  const current = m.features[feature] ?? {};
+  const next: FeatureDocs = { ...current };
+  if (tier) next.tier = tier;
+  else delete next.tier;
+  return { ...m, features: { ...m.features, [feature]: next } };
 }

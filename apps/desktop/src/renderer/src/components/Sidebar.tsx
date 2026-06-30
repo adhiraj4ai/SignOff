@@ -154,6 +154,15 @@ export function Sidebar({
             className="shrink-0 w-1.5 h-1.5 rounded-full bg-iris"
           />
         )}
+        {f.tier !== 'standard' && (
+          <span
+            title={`${f.tier} tier`}
+            aria-label={`${f.tier} tier`}
+            className="shrink-0 text-[8.5px] font-semibold uppercase tracking-wide px-1 py-0.5 rounded bg-railfg/[0.07] text-railfg/45"
+          >
+            {f.tier}
+          </span>
+        )}
         {f.category && (
           <span title={f.category.name} className="shrink-0">
             <CategorySwatch color={f.category.color} />
