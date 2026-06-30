@@ -19,6 +19,13 @@ import {
   inferFeatureName,
   approvalRelPath,
   readManifest,
+  writeManifest,
+  manifestRelPath,
+  listCategories,
+  upsertCategory,
+  removeCategory,
+  setFeatureCategory,
+  setFeatureTags,
   resolveDocPath,
   hashContent,
   isStale,
@@ -45,6 +52,7 @@ import {
   type CommentsFile,
   type GitErrorKind,
   type SyncState,
+  type Category,
 } from '@signoff/vault-core'
 import type { FeatureEntry, GitCommit, GitStatus, ReviewResult, VaultOpenResult } from '../shared/ipc-types.js'
 
@@ -317,6 +325,8 @@ export async function syncVault(vaultPath: string): Promise<void> {
 }
 
 export async function listFeatures(vaultPath: string): Promise<FeatureEntry[]> {
+  const manifest = await readManifest(vaultPath)
+  const byId = new Map(manifest.categories.map((c) => [c.id, c] as const))
   const entries = await listFeatureNames(vaultPath)
   const results: FeatureEntry[] = []
   for (const name of entries) {
@@ -324,13 +334,56 @@ export async function listFeatures(vaultPath: string): Promise<FeatureEntry[]> {
       getApprovalStatus(vaultPath, name, 'spec'),
       getApprovalStatus(vaultPath, name, 'plan'),
     ])
+    const docs = manifest.features[name]
     results.push({
       name,
       spec: specStatus.status,
       plan: planStatus.status,
+      category: (docs?.category && byId.get(docs.category)) || null,
+      tags: docs?.tags ?? [],
     })
   }
   return results
+}
+
+export async function listCategoriesBridge(vaultPath: string): Promise<Category[]> {
+  return listCategories(await readManifest(vaultPath))
+}
+
+export async function upsertCategoryBridge(vaultPath: string, category: Category): Promise<ReviewResult> {
+  return transact(vaultPath, async () => {
+    await writeManifest(vaultPath, upsertCategory(await readManifest(vaultPath), category))
+    return { files: [manifestRelPath], message: `chore: upsert category ${category.name}` }
+  })
+}
+
+export async function removeCategoryBridge(vaultPath: string, id: string): Promise<ReviewResult> {
+  return transact(vaultPath, async () => {
+    await writeManifest(vaultPath, removeCategory(await readManifest(vaultPath), id))
+    return { files: [manifestRelPath], message: `chore: remove category ${id}` }
+  })
+}
+
+export async function setFeatureCategoryBridge(
+  vaultPath: string,
+  feature: string,
+  categoryId: string | null,
+): Promise<ReviewResult> {
+  return transact(vaultPath, async () => {
+    await writeManifest(vaultPath, setFeatureCategory(await readManifest(vaultPath), feature, categoryId))
+    return { files: [manifestRelPath], message: `chore: set category of ${feature}` }
+  })
+}
+
+export async function setFeatureTagsBridge(
+  vaultPath: string,
+  feature: string,
+  tags: string[],
+): Promise<ReviewResult> {
+  return transact(vaultPath, async () => {
+    await writeManifest(vaultPath, setFeatureTags(await readManifest(vaultPath), feature, tags))
+    return { files: [manifestRelPath], message: `chore: set tags of ${feature}` }
+  })
 }
 
 export async function readDocument(vaultPath: string, feature: string, type: DocumentType): Promise<string> {
