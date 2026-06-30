@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import type { Category, FeatureEntry } from '@shared/ipc-types'
-import { normalizeTags } from '@shared/ipc-types'
+import type { Category, FeatureEntry, Tier } from '@shared/ipc-types'
+import { normalizeTags, TIER_KEYS } from '@shared/ipc-types'
 import { CategorySwatch } from './CategorySwatch'
 
 interface Props {
@@ -27,6 +27,11 @@ export function FeatureMetaBar({ vaultPath, feature, onChanged }: Props): React.
     onChanged()
   }
 
+  async function pickTier(next: Tier): Promise<void> {
+    await window.signoff.features.setTier(vaultPath, feature.name, next)
+    onChanged()
+  }
+
   return (
     <div className="flex items-center gap-2 flex-wrap px-4 py-2 border-b border-border text-[12.5px]">
       {feature.category && <CategorySwatch color={feature.category.color} />}
@@ -42,6 +47,30 @@ export function FeatureMetaBar({ vaultPath, feature, onChanged }: Props): React.
           </option>
         ))}
       </select>
+
+      <div role="group" aria-label="Tier" className="flex items-center gap-0.5 rounded-md bg-fg/[0.05] px-1 py-0.5">
+        {TIER_KEYS.map((t) => (
+          <label key={t} className="flex items-center cursor-pointer">
+            <input
+              type="radio"
+              name={`tier-${feature.name}`}
+              value={t}
+              checked={feature.tier === t}
+              onChange={() => void pickTier(t)}
+              className="sr-only"
+            />
+            <span
+              className={`text-[11px] px-1.5 py-0.5 rounded capitalize select-none transition-colors ${
+                feature.tier === t
+                  ? 'bg-fg/[0.12] text-fg/90 font-medium'
+                  : 'text-fg/45 hover:text-fg/70'
+              }`}
+            >
+              {t}
+            </span>
+          </label>
+        ))}
+      </div>
 
       <div className="flex items-center gap-1 flex-wrap">
         {feature.tags.map((t) => (
