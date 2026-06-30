@@ -6,6 +6,8 @@ import { ReviewPanel } from './components/ReviewPanel'
 import { DiscussionRail } from './components/DiscussionRail.js'
 import { StatusBar } from './components/StatusBar'
 import { GitPanel } from './components/GitPanel'
+import { FeatureMetaBar } from './components/FeatureMetaBar'
+import { CategoryManager } from './components/CategoryManager'
 import { useVault } from './hooks/useVault'
 import { useAutoSync } from './hooks/useAutoSync'
 import { useSeenFeatures } from './hooks/useSeenFeatures'
@@ -128,6 +130,7 @@ export function SelectedDocument({
 export function App(): React.ReactElement {
   const { state, openVault, closeVault, selectFeature, selectType, refresh } = useVault()
   const [showGit, setShowGit] = useState(false)
+  const [managerOpen, setManagerOpen] = useState(false)
   const [syncing, setSyncing] = useState(false)
   const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(null)
   const [syncKey, setSyncKey] = useState(0)
@@ -251,6 +254,7 @@ export function App(): React.ReactElement {
           onSync={syncNow}
           onSwitchVault={closeVault}
           isNew={isNew}
+          onManageCategories={() => setManagerOpen(true)}
         />
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
           {!active ? (
@@ -266,15 +270,20 @@ export function App(): React.ReactElement {
               </div>
             </div>
           ) : (
-            <SelectedDocument
-              key={`${active.feature}:${active.type}`}
-              vaultPath={state.vaultPath}
-              feature={active.feature}
-              type={active.type}
-              docTypes={activeTypes}
-              onSelectType={selectType}
-              onActionComplete={onActionComplete}
-            />
+            <>
+              {activeEntry && (
+                <FeatureMetaBar vaultPath={state.vaultPath} feature={activeEntry} onChanged={refresh} />
+              )}
+              <SelectedDocument
+                key={`${active.feature}:${active.type}`}
+                vaultPath={state.vaultPath}
+                feature={active.feature}
+                type={active.type}
+                docTypes={activeTypes}
+                onSelectType={selectType}
+                onActionComplete={onActionComplete}
+              />
+            </>
           )}
         </div>
       </div>
@@ -322,6 +331,13 @@ export function App(): React.ReactElement {
         onSetTheme={setTheme}
       />
       {showGit && <GitPanel vaultPath={state.vaultPath} onClose={() => setShowGit(false)} />}
+      <CategoryManager
+        vaultPath={state.vaultPath}
+        features={state.features}
+        open={managerOpen}
+        onClose={() => setManagerOpen(false)}
+        onChanged={refresh}
+      />
     </div>
   )
 }
