@@ -48,6 +48,9 @@ claude plugin marketplace add adhiraj4ai/signoff
 claude plugin install signoff@signoff --scope project
 ```
 
+The plugin invokes `@signoff/mcp-server` and `@signoff/superpowers-hook` via
+`npx`, so those packages must be available from npm.
+
 Or click **Connect to Claude Code** in the desktop app's status bar. See
 [`docs/superpowers-integration.md`](docs/superpowers-integration.md).
 

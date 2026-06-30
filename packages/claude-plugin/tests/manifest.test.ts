@@ -20,17 +20,17 @@ describe("plugin manifest", () => {
   it(".mcp.json points the signoff server at the project vault", () => {
     const m = readJson(path.join(pkg, ".mcp.json"));
     const args = m.mcpServers.signoff.args as string[];
-    expect(m.mcpServers.signoff.command).toBe("node");
+    expect(m.mcpServers.signoff.command).toBe("npx");
     expect(args).toContain("--vault");
+    expect(args.some((a) => a.includes("@signoff/mcp-server"))).toBe(true);
     expect(args.some((a) => a.includes("${CLAUDE_PROJECT_DIR}/.signoff"))).toBe(true);
-    expect(args.some((a) => a.includes("${CLAUDE_PLUGIN_ROOT}/dist/mcp.mjs"))).toBe(true);
   });
 
   it("hooks.json gates the structured edit tools", () => {
     const m = readJson(path.join(pkg, "hooks", "hooks.json"));
     const entry = m.PreToolUse[0];
     expect(entry.matcher).toBe("Write|Edit|MultiEdit|NotebookEdit");
-    expect(entry.hooks[0].command).toContain("${CLAUDE_PLUGIN_ROOT}/dist/gate.mjs");
+    expect(entry.hooks[0].command).toContain("@signoff/superpowers-hook");
   });
 
   it("repo marketplace.json lists the plugin with an existing source dir", () => {

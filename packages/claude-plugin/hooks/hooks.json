@@ -1,10 +1,6 @@
 {
   "PreToolUse": [
-    {
-      "matcher": "Write|Edit|MultiEdit|NotebookEdit",
-      "hooks": [
-        { "type": "command", "command": "node ${CLAUDE_PLUGIN_ROOT}/dist/gate.mjs" }
-      ]
-    }
+    { "matcher": "Write|Edit|MultiEdit|NotebookEdit",
+      "hooks": [{ "type": "command", "command": "npx -y @signoff/superpowers-hook" }] }
   ]
 }

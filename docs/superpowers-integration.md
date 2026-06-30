@@ -19,6 +19,10 @@ This installs the MCP server, the `signoff-gate` PreToolUse hook, and the
 SignOff workflow skill. No path configuration — the plugin resolves the vault
 from `${CLAUDE_PROJECT_DIR}/.signoff`.
 
+> **Note:** the plugin invokes `@signoff/mcp-server` and `@signoff/superpowers-hook`
+> via `npx` at runtime, so those packages must be available from npm (same
+> prerequisite as Option B).
+
 ### Option B — Desktop "Connect to Claude Code"
 
 In the SignOff desktop app, open the vault menu in the status bar and click
