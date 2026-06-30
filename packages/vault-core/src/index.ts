@@ -50,6 +50,10 @@ export {
   hashContent,
 } from "./manifest.js";
 
+// Categories & tags
+export type { Category, CategoryColor } from "./categories.js";
+export { CATEGORY_COLORS, slugify, normalizeTags } from "./categories.js";
+
 // Workflow
 export { readWorkflows, getWorkflowForType } from "./workflow.js";
 
