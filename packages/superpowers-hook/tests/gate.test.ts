@@ -291,4 +291,12 @@ describe("evaluateGate", () => {
     });
     expect(decision.allow).toBe(true);
   });
+
+  it("allows writing a registered ADR that lives outside any doc root (featureFor path)", async () => {
+    // adrs/ is NOT a doc root, so the under-doc-root authoring pass cannot apply;
+    // this is allowed only because the doc is a registered ADR (featureFor("adr")).
+    await registerDoc("y", "adr", "adrs/y-adr.md");
+    const decision = await evaluateGate(writeEvent("adrs/y-adr.md"));
+    expect(decision.allow).toBe(true);
+  });
 });
