@@ -54,6 +54,9 @@ The plugin invokes `@signoff/mcp-server` and `@signoff/superpowers-hook` via
 Or click **Connect to Claude Code** in the desktop app's status bar. See
 [`docs/superpowers-integration.md`](docs/superpowers-integration.md).
 
+For un-bypassable enforcement, add the required CI check — see
+[`docs/github-enforcement.md`](docs/github-enforcement.md).
+
 ## Install
 
 Download the latest installer from the [**Releases**](https://github.com/adhiraj4ai/signoff/releases) page:
