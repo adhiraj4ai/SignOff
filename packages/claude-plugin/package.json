@@ -1,0 +1,19 @@
+{
+  "name": "@signoff/claude-plugin",
+  "version": "0.1.2",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@signoff/mcp-server": "*",
+    "@signoff/superpowers-hook": "*"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0",
+    "vitest": "^3.2.4"
+  },
+  "engines": { "node": ">=20.0.0" }
+}
