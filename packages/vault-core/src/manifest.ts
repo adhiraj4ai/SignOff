@@ -97,7 +97,7 @@ export function hashContent(buf: Buffer | string): string {
 }
 
 export function listCategories(m: Manifest): Category[] {
-  return m.categories;
+  return [...m.categories];
 }
 
 export function upsertCategory(m: Manifest, cat: Category): Manifest {
@@ -130,7 +130,7 @@ export function setFeatureCategory(
 ): Manifest {
   const current = m.features[feature] ?? {};
   const next: FeatureDocs = { ...current };
-  if (categoryId) next.category = categoryId;
+  if (categoryId !== null) next.category = categoryId;
   else delete next.category;
   return { ...m, features: { ...m.features, [feature]: next } };
 }

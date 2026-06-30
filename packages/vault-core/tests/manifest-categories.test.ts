@@ -46,4 +46,11 @@ describe("category helpers", () => {
     const res = ensureCategory(m, "h");
     expect(res.manifest.categories[7].color).toBe("red"); // 7 % 7 == 0 -> red
   });
+
+  it("setFeatureCategory sets a string and clears on null", () => {
+    let m = setFeatureCategory(base, "user-auth", "backend");
+    expect(m.features["user-auth"].category).toBe("backend");
+    m = setFeatureCategory(m, "user-auth", null);
+    expect(m.features["user-auth"].category).toBeUndefined();
+  });
 });
