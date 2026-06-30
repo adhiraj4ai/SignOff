@@ -37,7 +37,7 @@ Add the MCP server and hook to `.claude/settings.json` yourself — see
 
 ## How it works
 
-- **The hook (`signoff-gate`)** is the hard gate. On every `Write`/`Edit`/
+- **The hook (`signoff-gate`)** is a *local, fail-closed* gate. On every `Write`/`Edit`/
   `MultiEdit`/`NotebookEdit` it checks the active feature's approval status:
   - writes under `docs/superpowers/specs/` — always allowed
   - writes under `docs/superpowers/plans/` — require the spec to be **approved**
@@ -51,7 +51,13 @@ Add the MCP server and hook to `.claude/settings.json` yourself — see
   hook reads.
 
 If Claude forgets to publish, the hook still blocks code changes — publishing
-smooths the workflow, the hook provides the guarantee.
+smooths the workflow. The hook is a **cooperative** check: it runs on the developer's machine and can be
+bypassed (a write through `Bash` such as `echo > foo.ts`, or simply not installing the
+hook, is not caught). It is fail-closed where it *does* run, but the **un-bypassable**
+gate is server-side — branch protection plus a required CI check that fails a pull
+request when the linked spec/plan isn't approved. That server-side check is the next
+item on the roadmap; until it lands, treat the hook as a strong guardrail, not a hard
+guarantee.
 
 ## Known limitation (v1)
 
