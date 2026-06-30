@@ -1,0 +1,41 @@
+name: SignOff
+on:
+  workflow_call:
+    inputs:
+      vault_url:
+        description: Git URL of the SignOff vault repo
+        required: true
+        type: string
+      type:
+        description: Approval type to require (spec or plan)
+        required: false
+        type: string
+        default: plan
+      feature:
+        description: Override the feature slug (else inferred from PR body/branch)
+        required: false
+        type: string
+        default: ""
+    secrets:
+      vault_token:
+        description: Read access token for the vault repo
+        required: true
+jobs:
+  signoff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Clone vault
+        env:
+          VAULT_URL: ${{ inputs.vault_url }}
+          VAULT_TOKEN: ${{ secrets.vault_token }}
+        run: |
+          echo "::add-mask::$VAULT_TOKEN"
+          npx -y @signoff/ci clone-vault "$VAULT_URL" .signoff
+      - name: SignOff approval check
+        env:
+          SIGNOFF_TYPE: ${{ inputs.type }}
+          SIGNOFF_FEATURE: ${{ inputs.feature }}
+          SIGNOFF_PR_BODY: ${{ github.event.pull_request.body }}
+          SIGNOFF_BRANCH: ${{ github.head_ref }}
+        run: npx -y @signoff/ci check
