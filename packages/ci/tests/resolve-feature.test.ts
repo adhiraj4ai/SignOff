@@ -37,4 +37,7 @@ describe("resolveFeature", () => {
   it("rejects an invalid trailer slug (path traversal) without falling back", () => {
     expect(resolveFeature({ prBody: "Signoff-Feature: ../etc", branch: "feat/safe" })).toBeNull();
   });
+  it("rejects an invalid explicit feature (path traversal) without falling back", () => {
+    expect(resolveFeature({ feature: "../evil", branch: "feat/safe" })).toBeNull();
+  });
 });
