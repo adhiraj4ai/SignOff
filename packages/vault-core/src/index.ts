@@ -53,12 +53,17 @@ export {
   removeCategory,
   setFeatureCategory,
   setFeatureTags,
+  setFeatureTier,
   ensureCategory,
 } from "./manifest.js";
 
 // Categories & tags
 export type { Category, CategoryColor } from "./categories.js";
 export { CATEGORY_COLORS, slugify, normalizeTags } from "./categories.js";
+
+// Tiers
+export type { Tier } from "./tiers.js";
+export { TIER_KEYS, normalizeTier, tierGatingArtifact, tierForcesUnanimous } from "./tiers.js";
 
 // Workflow
 export { readWorkflows, getWorkflowForType } from "./workflow.js";
