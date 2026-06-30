@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import fs from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
-import { VaultManager } from "@signoff/vault-core";
+import { VaultManager, readManifest } from "@signoff/vault-core";
 import { handlePublish } from "../src/tools/publish.js";
 
 let tmpDir: string;
@@ -121,5 +121,18 @@ describe("handlePublish", () => {
     expect(pointer.feature).toBe("user-auth");
     expect(pointer.vaultPath).toBe(vaultPath);
     expect(pointer.publishedAt).toMatch(/^\d{4}-\d{2}-\d{2}T.*Z$/);
+  });
+
+  it("forwards category and tags to the vault", async () => {
+    await handlePublish(vaultPath, {
+      feature_name: "user-auth",
+      document_type: "spec",
+      document_path: "docs/2026-06-27-user-auth-design.md",
+      category: "Backend",
+      tags: ["security", "v2"],
+    }, projectRoot);
+    const m = await readManifest(vaultPath);
+    expect(m.features["user-auth"].category).toBe("backend");
+    expect(m.features["user-auth"].tags).toEqual(["security", "v2"]);
   });
 });

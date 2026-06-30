@@ -26,6 +26,11 @@ import {
   connectRemote,
   cloneVault as cloneVaultBridge,
   getSyncStateBridge,
+  listCategoriesBridge,
+  upsertCategoryBridge,
+  removeCategoryBridge,
+  setFeatureCategoryBridge,
+  setFeatureTagsBridge,
 } from '../src/main/vault-bridge.js'
 
 let tmpDir: string
@@ -92,6 +97,29 @@ describe('createVault', () => {
     // registered at the .signoff dir
     const vaults = await listVaults()
     expect(vaults.some((v) => v.path === vaultDir)).toBe(true)
+  })
+})
+
+describe('categories & tags', () => {
+  it('assigns a category to a feature and resolves it in listFeatures', async () => {
+    await seedDoc('user-auth', 'spec')
+    await upsertCategoryBridge(vaultPath, { id: 'backend', name: 'Backend', color: 'blue' })
+    await setFeatureCategoryBridge(vaultPath, 'user-auth', 'backend')
+    await setFeatureTagsBridge(vaultPath, 'user-auth', ['security'])
+    const features = await listFeatures(vaultPath)
+    const f = features.find((x) => x.name === 'user-auth')!
+    expect(f.category).toEqual({ id: 'backend', name: 'Backend', color: 'blue' })
+    expect(f.tags).toEqual(['security'])
+  })
+
+  it('removeCategoryBridge clears the category off features', async () => {
+    await seedDoc('user-auth', 'spec')
+    await upsertCategoryBridge(vaultPath, { id: 'backend', name: 'Backend', color: 'blue' })
+    await setFeatureCategoryBridge(vaultPath, 'user-auth', 'backend')
+    await removeCategoryBridge(vaultPath, 'backend')
+    expect(await listCategoriesBridge(vaultPath)).toHaveLength(0)
+    const f = (await listFeatures(vaultPath)).find((x) => x.name === 'user-auth')!
+    expect(f.category).toBeNull()
   })
 })
 

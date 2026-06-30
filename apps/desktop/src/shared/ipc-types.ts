@@ -14,6 +14,8 @@ import type {
   CommentEntry,
   GitErrorKind,
   SyncState,
+  Category,
+  CategoryColor,
 } from '@signoff/vault-core'
 
 export type {
@@ -32,12 +34,21 @@ export type {
   CommentEntry,
   GitErrorKind,
   SyncState,
+  Category,
+  CategoryColor,
 }
+
+// Value re-exports (runtime helpers shared by main + renderer). Imported from the
+// pure `categories` subpath — NOT the package barrel — so the renderer bundle does
+// not pull in vault-core's git/simple-git (Node-only) code.
+export { CATEGORY_COLORS, slugify, normalizeTags } from '@signoff/vault-core/categories'
 
 export interface FeatureEntry {
   name: string
   spec: ApprovalStatus | 'not_found'
   plan: ApprovalStatus | 'not_found'
+  category: Category | null
+  tags: string[]
 }
 
 /** Result of creating/opening a vault: the vault's display name and the
@@ -80,6 +91,8 @@ export type IpcChannels =
   | 'vault:log' | 'vault:status' | 'vault:push' | 'vault:publish-branch' | 'vault:author'
   | 'vault:connect-remote' | 'vault:clone' | 'vault:sync-state' | 'vault:connect-claude'
   | 'features:list'
+  | 'categories:list' | 'categories:upsert' | 'categories:remove'
+  | 'feature:set-category' | 'feature:set-tags'
   | 'document:read' | 'document:write' | 'document:get-approval' | 'document:is-stale'
   | 'review:action'
   | 'comments:read' | 'comments:add-thread' | 'comments:add-reply' | 'comments:set-resolved'
@@ -110,6 +123,13 @@ export interface SignoffAPI {
   }
   features: {
     list(vaultPath: string): Promise<FeatureEntry[]>
+    setCategory(vaultPath: string, feature: string, categoryId: string | null): Promise<ReviewResult>
+    setTags(vaultPath: string, feature: string, tags: string[]): Promise<ReviewResult>
+  }
+  categories: {
+    list(vaultPath: string): Promise<Category[]>
+    upsert(vaultPath: string, category: Category): Promise<ReviewResult>
+    remove(vaultPath: string, id: string): Promise<ReviewResult>
   }
   document: {
     read(vaultPath: string, feature: string, type: DocumentType): Promise<string>
