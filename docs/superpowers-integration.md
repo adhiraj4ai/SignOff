@@ -54,10 +54,9 @@ If Claude forgets to publish, the hook still blocks code changes — publishing
 smooths the workflow. The hook is a **cooperative** check: it runs on the developer's machine and can be
 bypassed (a write through `Bash` such as `echo > foo.ts`, or simply not installing the
 hook, is not caught). It is fail-closed where it *does* run, but the **un-bypassable**
-gate is server-side — branch protection plus a required CI check that fails a pull
-request when the linked spec/plan isn't approved. That server-side check is the next
-item on the roadmap; until it lands, treat the hook as a strong guardrail, not a hard
-guarantee.
+gate is server-side — a required CI check that fails a pull
+request when the feature's plan isn't approved. See
+[GitHub enforcement](github-enforcement.md) to turn it on.
 
 ## Known limitation (v1)
 
