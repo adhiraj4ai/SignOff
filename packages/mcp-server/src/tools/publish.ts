@@ -17,7 +17,7 @@ export async function handlePublish(
     throw new Error("args must be a plain object");
   }
 
-  const { feature_name, document_type, document_path } = args as Record<
+  const { feature_name, document_type, document_path, category, tags } = args as Record<
     string,
     unknown
   >;
@@ -40,7 +40,10 @@ export async function handlePublish(
 
   const { name, email } = await resolveGitAuthor(vaultPath);
   const vault = await VaultManager.open(vaultPath);
-  const result = await vault.submitForReview(feature_name, resolvedType, document_path, email, name);
+  const opts: { category?: string; tags?: string[] } = {};
+  if (typeof category === "string" && category.length) opts.category = category;
+  if (Array.isArray(tags)) opts.tags = tags.filter((t): t is string => typeof t === "string");
+  const result = await vault.submitForReview(feature_name, resolvedType, document_path, email, name, opts);
   // Best-effort pointer write after a successful publish; a write failure here surfaces as a publish error.
   await writeActiveFeature(projectRoot, { feature: feature_name, vaultPath });
   return result;

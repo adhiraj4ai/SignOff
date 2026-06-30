@@ -36,6 +36,15 @@ export function createServer(vaultPath: string): Server {
               type: "string",
               description: "Path to the document, relative to the project root, e.g. docs/specs/2026-06-27-user-auth-design.md",
             },
+            category: {
+              type: "string",
+              description: "Optional suggested category name (e.g. 'Backend'). Created if absent; ignored if a reviewer already set one.",
+            },
+            tags: {
+              type: "array",
+              items: { type: "string" },
+              description: "Optional suggested free-form tags; merged with any existing tags.",
+            },
           },
           required: ["feature_name", "document_type", "document_path"],
         },
@@ -59,6 +68,15 @@ export function createServer(vaultPath: string): Server {
             document_path: {
               type: "string",
               description: "Path to the document, relative to the project root, e.g. docs/specs/2026-06-27-user-auth-design.md",
+            },
+            category: {
+              type: "string",
+              description: "Optional suggested category name (e.g. 'Backend'). Created if absent; ignored if a reviewer already set one.",
+            },
+            tags: {
+              type: "array",
+              items: { type: "string" },
+              description: "Optional suggested free-form tags; merged with any existing tags.",
             },
           },
           required: ["feature_name", "document_type", "document_path"],
