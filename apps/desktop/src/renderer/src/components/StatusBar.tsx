@@ -63,6 +63,7 @@ export function StatusBar({
   const [syncStateData, setSyncStateData] = useState<SyncState | null>(null)
   const [author, setAuthor] = useState<{ name: string; email: string } | null>(null)
   const [open, setOpen] = useState<'identity' | 'vault' | 'settings' | null>(null)
+  const [connectMsg, setConnectMsg] = useState<string | null>(null)
   const barRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
@@ -152,6 +153,23 @@ export function StatusBar({
           >
             Switch project
           </button>
+          <button
+            onClick={async () => {
+              try {
+                const { settingsPath } = await window.signoff.vault.connectClaude(vaultPath)
+                setConnectMsg(`Wrote ${settingsPath}`)
+              } catch (err) {
+                setConnectMsg(`Couldn't connect: ${err instanceof Error ? err.message : String(err)}`)
+              }
+            }}
+            className="mt-2 block text-iris hover:underline text-[12px]"
+          >
+            Connect to Claude Code
+          </button>
+          {connectMsg && <p className="mt-1.5 text-[11px] text-fg/50 break-all">{connectMsg}</p>}
+          <p className="mt-1.5 text-[11px] text-fg/40">
+            Requires the SignOff npm packages (or use the Claude Code plugin).
+          </p>
         </Popover>
       )}
 

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import '@testing-library/jest-dom'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { StatusBar } from '@renderer/components/StatusBar'
 
 function renderBar() {
@@ -82,5 +82,17 @@ describe('StatusBar consolidated git cluster', () => {
     vi.mocked(window.signoff.vault.syncState).mockResolvedValue({ branch: 'main', hasRemote: false, hasUpstream: false, ahead: 0, behind: 0 })
     renderBar()
     await waitFor(() => expect(screen.getByText('Connect repo')).toBeInTheDocument())
+  })
+
+  it('connects to Claude Code from the vault popover and reports the written path', async () => {
+    vi.mocked(window.signoff.vault.syncState).mockResolvedValue({ branch: 'main', hasRemote: false, hasUpstream: false, ahead: 0, behind: 0 })
+    vi.mocked(window.signoff.vault.connectClaude).mockResolvedValue({ settingsPath: '/v/.claude/settings.json' })
+    renderBar()
+    // open the vault popover
+    fireEvent.click(screen.getByText('My Vault'))
+    const btn = await screen.findByRole('button', { name: /connect to claude code/i })
+    fireEvent.click(btn)
+    await waitFor(() => expect(window.signoff.vault.connectClaude).toHaveBeenCalledWith('/v'))
+    await waitFor(() => expect(screen.getByText(/\.claude\/settings\.json/)).toBeInTheDocument())
   })
 })
