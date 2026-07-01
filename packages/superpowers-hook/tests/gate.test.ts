@@ -309,9 +309,18 @@ describe("evaluateGate", () => {
     // Standard feature: gate on plan. Register + approve the plan, but require a diagram.
     const rel = "docs/plans/2026-07-01-x.md";
     await fs.mkdir(path.join(projectRoot, "docs/plans"), { recursive: true });
-    await fs.writeFile(path.join(projectRoot, rel), "# Plan\n\nno diagram here\n");
+    const noDiagramContent = "# Plan\n\nno diagram here\n";
+    await fs.writeFile(path.join(projectRoot, rel), noDiagramContent);
     await registerDoc("x", "plan", rel);
-    await approve("x", "plan"); // reviewer-approved (no content_hash ⇒ fresh)
+    await approve("x", "plan");
+    // Make approval fresh by matching the no-diagram content hash
+    const recBlocked = await readApproval(vaultPath, "x", "plan");
+    if (recBlocked) {
+      const noDiagramHash = hashContent(Buffer.from(noDiagramContent));
+      recBlocked.reviewers["reviewer@org.com"] = { ...recBlocked.reviewers["reviewer@org.com"], content_hash: noDiagramHash };
+      recBlocked.history[recBlocked.history.length - 1].content_hash = noDiagramHash;
+      await writeApproval(vaultPath, recBlocked);
+    }
     const wf = await readWorkflows(vaultPath);
     wf.plan = { ...wf.plan, require_diagram: true };
     await writeWorkflows(vaultPath, wf);
@@ -322,13 +331,14 @@ describe("evaluateGate", () => {
     expect(blocked.allow).toBe(false);
 
     // add a mermaid diagram ⇒ plan approves ⇒ code allowed
-    const newContent = "# Plan\n\n```mermaid\ngraph TD; A-->B\n```\n";
-    await fs.writeFile(path.join(projectRoot, rel), newContent);
+    const withDiagramContent = "# Plan\n\n```mermaid\ngraph TD; A-->B\n```\n";
+    await fs.writeFile(path.join(projectRoot, rel), withDiagramContent);
     // Update the approval record with the new content hash (fresh approval reflects the new content)
     const rec = await readApproval(vaultPath, "x", "plan");
     if (rec) {
-      const newHash = hashContent(newContent);
-      rec.reviewers["reviewer@org.com"] = { status: "approved", at: rec.reviewers["reviewer@org.com"].at, content_hash: newHash };
+      const withDiagramHash = hashContent(Buffer.from(withDiagramContent));
+      rec.reviewers["reviewer@org.com"] = { status: "approved", at: rec.reviewers["reviewer@org.com"].at, content_hash: withDiagramHash };
+      rec.history[rec.history.length - 1].content_hash = withDiagramHash;
       await writeApproval(vaultPath, rec);
     }
     const allowed = await evaluateGate(writeEvent("src/app.ts"));
