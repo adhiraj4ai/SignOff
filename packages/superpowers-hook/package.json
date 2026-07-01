@@ -1,6 +1,6 @@
 {
   "name": "@signoff/superpowers-hook",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "SignOff PreToolUse hook — gates implementation behind vault approval",
   "type": "module",
   "main": "dist/cli.js",
@@ -10,6 +10,9 @@
   "files": [
     "dist"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc",
     "dev": "tsx src/cli.ts",
@@ -19,7 +22,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@signoff/vault-core": "*"
+    "@signoff/vault-core": "^0.2.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

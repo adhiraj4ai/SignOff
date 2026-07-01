@@ -1,11 +1,12 @@
 {
   "name": "@signoff/ci",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "SignOff CI check — fails a PR unless its feature's plan is approved in the vault",
   "type": "module",
   "main": "dist/cli.js",
   "bin": { "signoff-ci": "dist/cli.js" },
   "files": ["dist"],
+  "publishConfig": { "access": "public" },
   "scripts": {
     "build": "tsc",
     "dev": "tsx src/cli.ts",
@@ -14,7 +15,7 @@
     "test": "vitest run",
     "test:watch": "vitest"
   },
-  "dependencies": { "@signoff/vault-core": "*" },
+  "dependencies": { "@signoff/vault-core": "^0.2.0" },
   "devDependencies": {
     "@types/node": "^22.0.0",
     "tsx": "^4.19.2",
