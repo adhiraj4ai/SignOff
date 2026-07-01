@@ -70,6 +70,10 @@ beforeEach(async () => {
   await fs.mkdir(projectRoot, { recursive: true });
   // Vault lives at projectRoot/.signoff — matches gate's SIGNOFF_DIR constant.
   await VaultManager.create(vaultPath, "test-project");
+  // Disable spec diagram requirement so pre-diagram-gating tests can approve specs normally.
+  const wf = await readWorkflows(vaultPath);
+  wf.spec = { ...wf.spec, require_diagram: false };
+  await writeWorkflows(vaultPath, wf);
 });
 
 afterEach(async () => {
