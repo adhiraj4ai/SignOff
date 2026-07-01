@@ -11,6 +11,9 @@ import {
   writeManifest,
   setFeatureDoc,
   setFeatureTier,
+  readWorkflows,
+  writeWorkflows,
+  hashContent,
 } from "@signoff/vault-core";
 import type { ApprovalRecord } from "@signoff/vault-core";
 import { evaluateGate } from "../src/gate.js";
@@ -298,5 +301,37 @@ describe("evaluateGate", () => {
     await registerDoc("y", "adr", "adrs/y-adr.md");
     const decision = await evaluateGate(writeEvent("adrs/y-adr.md"));
     expect(decision.allow).toBe(true);
+  });
+
+  // --- Workflow-required diagram enforcement --------------------------------
+
+  it("blocks code when the plan's workflow requires a diagram and the plan has none", async () => {
+    // Standard feature: gate on plan. Register + approve the plan, but require a diagram.
+    const rel = "docs/plans/2026-07-01-x.md";
+    await fs.mkdir(path.join(projectRoot, "docs/plans"), { recursive: true });
+    await fs.writeFile(path.join(projectRoot, rel), "# Plan\n\nno diagram here\n");
+    await registerDoc("x", "plan", rel);
+    await approve("x", "plan"); // reviewer-approved (no content_hash ⇒ fresh)
+    const wf = await readWorkflows(vaultPath);
+    wf.plan = { ...wf.plan, require_diagram: true };
+    await writeWorkflows(vaultPath, wf);
+    await writeActiveFeature(projectRoot, { feature: "x", vaultPath });
+
+    // no diagram ⇒ plan can't be approved ⇒ code blocked
+    const blocked = await evaluateGate(writeEvent("src/app.ts"));
+    expect(blocked.allow).toBe(false);
+
+    // add a mermaid diagram ⇒ plan approves ⇒ code allowed
+    const newContent = "# Plan\n\n```mermaid\ngraph TD; A-->B\n```\n";
+    await fs.writeFile(path.join(projectRoot, rel), newContent);
+    // Update the approval record with the new content hash (fresh approval reflects the new content)
+    const rec = await readApproval(vaultPath, "x", "plan");
+    if (rec) {
+      const newHash = hashContent(newContent);
+      rec.reviewers["reviewer@org.com"] = { status: "approved", at: rec.reviewers["reviewer@org.com"].at, content_hash: newHash };
+      await writeApproval(vaultPath, rec);
+    }
+    const allowed = await evaluateGate(writeEvent("src/app.ts"));
+    expect(allowed.allow).toBe(true);
   });
 });
