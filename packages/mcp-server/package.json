@@ -1,21 +1,29 @@
 {
   "name": "@signoff/mcp-server",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "SignOff MCP server — publish and gate documents in Claude Code",
   "type": "module",
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "bin": {
     "signoff-mcp": "dist/index.js"
   },
   "scripts": {
     "build": "tsc",
+    "prepublishOnly": "npm run build",
     "dev": "tsx src/index.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@signoff/vault-core": "*",
+    "@signoff/vault-core": "^0.2.0",
     "@modelcontextprotocol/sdk": "^1.12.3",
     "simple-git": "^3.27.0"
   },
