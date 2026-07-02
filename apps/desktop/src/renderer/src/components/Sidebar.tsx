@@ -206,7 +206,17 @@ export function Sidebar({
 
   return (
     <aside className="w-60 min-w-60 bg-rail text-railfg flex flex-col h-full select-none">
-      <header className="h-14 px-2.5 flex items-center justify-between gap-1 border-b border-railfg/[0.08]">
+      {/* Brand — logo + wordmark, above the project name */}
+      <div className="px-3 pt-3.5 pb-1.5 flex items-center gap-2">
+        <Logo size={26} className="shrink-0" />
+        <span
+          className="text-railfg/90 leading-none"
+          style={{ fontFamily: "'SignPainter', 'SignPainter-HouseScript', 'Brush Script MT', cursive", fontWeight: 700, fontSize: '24px' }}
+        >
+          SignOff
+        </span>
+      </div>
+      <header className="h-12 px-2.5 flex items-center justify-between gap-1 border-b border-railfg/[0.08]">
         <button
           onClick={onSwitchVault}
           title="Switch project"
@@ -427,15 +437,6 @@ export function Sidebar({
             </button>
           </div>
         )}
-        <div className="px-3.5 py-4 flex items-center justify-center gap-2.5 border-t border-railfg/[0.06]">
-          <Logo size={32} className="shrink-0" />
-          <span
-            className="text-railfg/90 leading-none pr-0.5"
-            style={{ fontFamily: "'SignPainter', 'SignPainter-HouseScript', 'Brush Script MT', cursive", fontWeight: 700, fontSize: '26px' }}
-          >
-            SignOff
-          </span>
-        </div>
       </footer>
     </aside>
   )
