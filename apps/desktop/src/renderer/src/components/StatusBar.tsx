@@ -39,9 +39,9 @@ function relTime(ts: number | null): string {
 }
 
 const cls =
-  'flex items-center gap-1.5 px-2 h-full text-fg/55 hover:text-fg hover:bg-iris-soft transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-iris/40'
+  'flex items-center gap-1.5 px-2 h-full text-muted hover:text-fg hover:bg-iris-soft transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-iris/40'
 
-const LABEL = 'font-mono text-[10.5px] font-semibold uppercase tracking-[0.13em] text-fg/40'
+const LABEL = 'font-mono text-[10.5px] font-semibold tracking-wide text-muted'
 
 function Sep(): React.ReactElement {
   return <span className="w-px h-3.5 bg-border self-center" />
@@ -117,12 +117,12 @@ export function StatusBar({
     return { label: repo.label, sub: null, tone: 'ok' }
   }
   const git = gitState()
-  const toneClass = { ok: 'text-fg/70', wait: 'text-wait', dim: 'text-fg/40' }[git.tone]
+  const toneClass = { ok: 'text-fg/70', wait: 'text-wait', dim: 'text-faint' }[git.tone]
 
   return (
     <footer
       ref={barRef}
-      className="relative h-7 shrink-0 bg-rail border-t border-border flex items-stretch text-[11px] font-mono text-fg/55"
+      className="relative h-7 shrink-0 bg-rail border-t border-border flex items-stretch text-[11px] font-mono text-muted"
     >
       {/* Identity */}
       <button className={cls} onClick={() => setOpen(open === 'identity' ? null : 'identity')} title="Reviewer identity">
@@ -132,8 +132,8 @@ export function StatusBar({
       {open === 'identity' && author && (
         <Popover>
           <p className="text-fg font-medium">{author.name}</p>
-          <p className="text-fg/55">{author.email}</p>
-          <p className="text-fg/40 mt-1 text-[11px]">Decisions are committed under this git identity.</p>
+          <p className="text-muted">{author.email}</p>
+          <p className="text-faint mt-1 text-[11px]">Decisions are committed under this git identity.</p>
         </Popover>
       )}
       <Sep />
@@ -145,7 +145,7 @@ export function StatusBar({
       {open === 'vault' && (
         <Popover>
           <p className="text-fg font-medium">{vaultName}</p>
-          <p className="text-fg/45 font-mono text-[11px] truncate">{vaultPath}</p>
+          <p className="text-muted font-mono text-[11px] truncate">{vaultPath}</p>
           <button
             onClick={() => {
               setOpen(null)
@@ -168,8 +168,8 @@ export function StatusBar({
           >
             Connect to Claude Code
           </button>
-          {connectMsg && <p className="mt-1.5 text-[11px] text-fg/50 break-all">{connectMsg}</p>}
-          <p className="mt-1.5 text-[11px] text-fg/40">
+          {connectMsg && <p className="mt-1.5 text-[11px] text-muted break-all">{connectMsg}</p>}
+          <p className="mt-1.5 text-[11px] text-faint">
             Requires the SignOff npm packages (or use the Claude Code plugin).
           </p>
         </Popover>
@@ -183,7 +183,7 @@ export function StatusBar({
         <GitHubMark />
         <span className={toneClass}>{git.label}</span>
         {git.sub && (
-          <span className={`px-1.5 py-px rounded-full text-[10px] font-medium ${git.tone === 'wait' ? 'bg-wait-soft text-wait' : 'text-fg/45'}`}>
+          <span className={`px-1.5 py-px rounded-full text-[10px] font-medium ${git.tone === 'wait' ? 'bg-wait-soft text-wait' : 'text-muted'}`}>
             {git.sub}
           </span>
         )}
@@ -191,7 +191,7 @@ export function StatusBar({
 
       {/* Sync now — the sync control uses the brand iris on hover */}
       <button
-        className="flex items-center gap-1.5 px-2 h-full text-fg/55 hover:text-iris hover:bg-iris-soft transition-colors disabled:opacity-60 disabled:hover:bg-transparent disabled:hover:text-fg/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-iris/40"
+        className="flex items-center gap-1.5 px-2 h-full text-muted hover:text-iris hover:bg-iris-soft transition-colors disabled:opacity-60 disabled:hover:bg-transparent disabled:hover:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-iris/40"
         onClick={onSyncNow}
         disabled={syncing}
         title="Pull and push now"
@@ -223,7 +223,7 @@ export function StatusBar({
                 className={`flex-1 capitalize rounded-md px-2 py-1 text-[12px] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-iris/40 ${
                   theme === t
                     ? 'bg-surface text-iris-ink font-semibold shadow-sm'
-                    : 'text-fg/50 hover:text-fg'
+                    : 'text-muted hover:text-fg'
                 }`}
               >
                 {t}
@@ -245,7 +245,7 @@ export function StatusBar({
               </button>
             ))}
           </div>
-          <p className="text-[11px] text-fg/40 mt-2">Currently: {autoLabel}</p>
+          <p className="text-[11px] text-faint mt-2">Currently: {autoLabel}</p>
         </Popover>
       )}
     </footer>

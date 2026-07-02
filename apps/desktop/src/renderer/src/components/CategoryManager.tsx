@@ -66,13 +66,13 @@ export function CategoryManager({
           <button
             onClick={onClose}
             aria-label="Close"
-            className="text-fg/40 hover:text-fg text-[13px] rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-iris/40"
+            className="text-muted hover:text-fg text-[13px] rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-iris/40"
           >
             Done
           </button>
         </div>
 
-        <p className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.13em] text-fg/40 mb-2">
+        <p className="font-mono text-[10.5px] font-semibold tracking-wide text-muted mb-2">
           Categories
         </p>
         <ul className="space-y-0.5 mb-5">
@@ -83,24 +83,24 @@ export function CategoryManager({
             >
               <CategorySwatch color={c.color} size={12} />
               <span className="flex-1 text-fg truncate">{c.name}</span>
-              <span className="text-fg/40 text-[11px] font-mono tabular-nums">used by {usage(c.id)}</span>
+              <span className="text-muted text-[11px] font-mono tabular-nums">used by {usage(c.id)}</span>
               <button
                 onClick={() => void remove(c.id)}
-                className="text-fg/40 hover:text-stop text-[11px] font-medium rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-iris/40 transition-colors"
+                className="text-muted hover:text-stop text-[11px] font-medium rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-iris/40 transition-colors"
               >
                 Delete
               </button>
             </li>
           ))}
           {categories.length === 0 && (
-            <li className="text-[12.5px] text-fg/50 px-2 py-1.5">
+            <li className="text-[12.5px] text-muted px-2 py-1.5">
               No categories yet — add your first one below.
             </li>
           )}
         </ul>
 
         <div className="border-t border-border pt-4">
-          <p className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.13em] text-fg/40 mb-2.5">
+          <p className="font-mono text-[10.5px] font-semibold tracking-wide text-muted mb-2.5">
             New category
           </p>
           <div className="flex items-center gap-1.5 mb-3">
@@ -123,7 +123,7 @@ export function CategoryManager({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="New category…"
-              className="flex-1 rounded-md border border-border bg-app text-fg text-[13px] px-2.5 py-1.5 placeholder:text-fg/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-iris/40 focus:border-iris/40"
+              className="flex-1 rounded-md border border-border bg-app text-fg text-[13px] px-2.5 py-1.5 placeholder:text-faint focus:outline-none focus-visible:ring-2 focus-visible:ring-iris/40 focus:border-iris/40"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') void add()
               }}

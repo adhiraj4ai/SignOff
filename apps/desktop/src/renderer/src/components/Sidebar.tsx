@@ -161,7 +161,7 @@ export function Sidebar({
           <span
             title={`${f.tier} tier`}
             aria-label={`${f.tier} tier`}
-            className="shrink-0 text-[8.5px] font-semibold uppercase tracking-wide px-1 py-0.5 rounded bg-railfg/[0.07] text-railfg/45"
+            className="shrink-0 text-[8.5px] font-semibold tracking-wide px-1 py-0.5 rounded bg-railfg/[0.07] text-railfg/45"
           >
             {f.tier}
           </span>
@@ -292,7 +292,7 @@ export function Sidebar({
 
           {/* Arrange-by segmented control */}
           <div className="space-y-1.5">
-            <span className="block font-mono text-[10.5px] font-semibold uppercase tracking-[0.13em] text-railfg/40">
+            <span className="block font-mono text-[10.5px] font-semibold tracking-wide text-railfg/40">
               Arrange by
             </span>
             <div className="flex items-center gap-1 bg-railfg/[0.06] p-1 rounded-lg">
@@ -311,7 +311,7 @@ export function Sidebar({
           {/* Tag filter — narrow the list to features carrying every selected tag */}
           {allTags(features).length > 0 && (
             <div className="space-y-1.5">
-              <span className="block font-mono text-[10.5px] font-semibold uppercase tracking-[0.13em] text-railfg/40">
+              <span className="block font-mono text-[10.5px] font-semibold tracking-wide text-railfg/40">
                 Tags
               </span>
               <div className="flex flex-wrap gap-1">
@@ -362,7 +362,7 @@ export function Sidebar({
         )}
 
         {filtering && filtered.length > 0 && (
-          <p className="font-mono text-[10px] uppercase tracking-[0.13em] text-railfg/35 px-3 pb-1.5">
+          <p className="font-mono text-[10px] tracking-wide text-railfg/35 px-3 pb-1.5">
             {filtered.length} {filtered.length === 1 ? 'result' : 'results'}
           </p>
         )}
@@ -375,7 +375,7 @@ export function Sidebar({
             if (group.length === 0) return null
             return (
               <div key={s} className="mb-3">
-                <p className="flex items-center gap-1.5 font-mono text-[10.5px] font-semibold uppercase tracking-[0.13em] text-railfg/40 px-3 mb-1">
+                <p className="flex items-center gap-1.5 font-mono text-[10.5px] font-semibold tracking-wide text-railfg/40 px-3 mb-1">
                   <span className={`w-1.5 h-1.5 rounded-full ${statusDot(s)}`} />
                   {statusLabel(s)}
                   <span className="ml-1 text-railfg/25 tracking-normal">{group.length}</span>
@@ -388,7 +388,7 @@ export function Sidebar({
         {groupBy === 'category' &&
           groupByCategory(filtered).map((g) => (
             <div key={g.category?.id ?? '__uncategorized'} className="mb-3">
-              <p className="flex items-center gap-1.5 font-mono text-[10.5px] font-semibold uppercase tracking-[0.13em] text-railfg/40 px-3 mb-1">
+              <p className="flex items-center gap-1.5 font-mono text-[10.5px] font-semibold tracking-wide text-railfg/40 px-3 mb-1">
                 {g.category ? (
                   <CategorySwatch color={g.category.color} />
                 ) : (
@@ -428,7 +428,7 @@ export function Sidebar({
             </button>
           </div>
         )}
-        <p className="px-4 py-2.5 font-mono text-[10px] uppercase tracking-[0.13em] text-railfg/30">
+        <p className="px-4 py-2.5 font-mono text-[10px] tracking-wide text-railfg/30">
           Signoff · review &amp; approve
         </p>
       </footer>

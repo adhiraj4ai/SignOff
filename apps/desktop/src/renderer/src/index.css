@@ -11,6 +11,9 @@
   --railfg: 22 24 29; /* dark text on the light rail */
   --fg: 22 24 29; /* #16181d */
   --border: 231 230 240; /* #e7e6f0 — iris-biased hairline */
+  --muted: 107 113 128; /* #6b7180 — secondary text (exact artifact) */
+  --faint: 154 160 173; /* #9aa0ad — tertiary text / placeholders (exact artifact) */
+  --border-soft: 238 237 245; /* #eeedf5 — subtle inner dividers */
 }
 .dark {
   --app: 20 21 30; /* #14151e — iris-tinted dark ground */
@@ -19,6 +22,9 @@
   --railfg: 231 233 238;
   --fg: 231 233 238; /* #e7e9ee */
   --border: 45 46 62; /* #2d2e3e — iris-biased hairline */
+  --muted: 139 147 163; /* #8b93a3 — readable secondary text on dark */
+  --faint: 107 113 128; /* #6b7180 */
+  --border-soft: 34 35 47; /* #22232f — subtle inner dividers */
 }
 
 @layer base {

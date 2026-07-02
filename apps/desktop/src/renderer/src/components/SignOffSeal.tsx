@@ -30,14 +30,14 @@ interface Look {
 export function SignOffSeal({ status, type, approvedCount, totalRequired }: Props): React.ReactElement {
   const look: Look =
     status === 'approved'
-      ? { ring: 'border-ok text-ok', glow: 'from-ok-soft', dashed: false, filled: 'bg-ok-soft/60', icon: '✓', stamp: ['SIGNED', 'OFF'], caption: 'Signed off' }
+      ? { ring: 'border-ok text-ok', glow: 'from-ok-soft', dashed: false, filled: 'bg-ok-soft', icon: '✓', stamp: ['Signed', 'off'], caption: 'Signed off' }
       : status === 'rejected'
-        ? { ring: 'border-stop text-stop', glow: 'from-stop-soft', dashed: false, filled: 'bg-stop-soft/50', icon: '↺', stamp: ['CHANGES', 'REQUESTED'], caption: 'Changes requested' }
+        ? { ring: 'border-stop text-stop', glow: 'from-stop-soft', dashed: false, filled: 'bg-stop-soft', icon: '↺', stamp: ['Changes', 'needed'], caption: 'Changes requested' }
         : status === 'in_review'
-          ? { ring: 'border-iris text-iris-ink', glow: 'from-iris-soft', dashed: true, filled: 'bg-iris-soft/40', icon: '✒', stamp: ['IN', 'REVIEW'], caption: 'In review' }
+          ? { ring: 'border-iris text-iris-ink', glow: 'from-iris-soft', dashed: true, filled: 'bg-iris-soft', icon: '✒', stamp: ['In', 'review'], caption: 'In review' }
           : status === 'pending'
-            ? { ring: 'border-iris text-iris-ink', glow: 'from-iris-soft', dashed: true, filled: 'bg-iris-soft/40', icon: '✒', stamp: ['AWAITING', 'SIGN-OFF'], caption: 'Awaiting sign-off' }
-            : { ring: 'border-fg/25 text-fg/40', glow: 'from-app', dashed: true, filled: '', icon: '·', stamp: ['NOT', 'SUBMITTED'], caption: 'Not submitted' }
+            ? { ring: 'border-iris text-iris-ink', glow: 'from-iris-soft', dashed: true, filled: 'bg-iris-soft', icon: '✒', stamp: ['Awaiting', 'sign-off'], caption: 'Awaiting sign-off' }
+            : { ring: 'border-border text-faint', glow: 'from-app', dashed: true, filled: '', icon: '·', stamp: ['Not', 'submitted'], caption: 'Not submitted' }
 
   const showQuorum = typeof totalRequired === 'number' && totalRequired > 0 && status !== 'not_found'
   const done = approvedCount ?? 0
@@ -50,12 +50,12 @@ export function SignOffSeal({ status, type, approvedCount, totalRequired }: Prop
         <div className={`absolute inset-[7px] rounded-full border ${look.dashed ? 'border-dashed' : ''} ${look.ring} opacity-40`} />
         <div className="relative leading-none">
           <div className="text-[22px] mb-1" aria-hidden>{look.icon}</div>
-          <div className="font-mono text-[10.5px] font-bold tracking-[0.1em] leading-[1.35]">
+          <div className="font-mono text-[11px] font-bold leading-[1.35]">
             {look.stamp[0]}
             <br />
             {look.stamp[1]}
           </div>
-          <div className="font-mono text-[8px] tracking-[0.14em] opacity-70 mt-1.5">{type.toUpperCase()}</div>
+          <div className="font-mono text-[8.5px] tracking-wide opacity-70 mt-1.5">{type[0].toUpperCase() + type.slice(1)}</div>
         </div>
       </div>
 
@@ -63,7 +63,7 @@ export function SignOffSeal({ status, type, approvedCount, totalRequired }: Prop
         <div className="text-[15px] font-semibold text-fg">{look.caption}</div>
         {showQuorum && (
           <>
-            <div className="text-[12px] text-fg/50 mt-0.5 tabular-nums">
+            <div className="text-[12px] text-muted mt-0.5 tabular-nums">
               {done} of {totalRequired} approval{totalRequired === 1 ? '' : 's'}
             </div>
             <div className="flex items-center justify-center gap-1.5 mt-2">

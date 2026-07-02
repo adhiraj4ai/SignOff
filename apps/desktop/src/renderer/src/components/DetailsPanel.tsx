@@ -13,8 +13,8 @@ interface Props {
   onManageCategories?: () => void
 }
 
-const LABEL = 'font-mono text-[10.5px] font-semibold uppercase tracking-[0.13em] text-fg/40'
-const ROW_KEY = 'text-[12px] text-fg/50 shrink-0 w-[54px]'
+const LABEL = 'font-mono text-[11px] font-semibold tracking-wide text-muted'
+const ROW_KEY = 'text-[12px] text-muted shrink-0 w-[54px]'
 
 /** Feature metadata — category, weight, tags, ticket — as a vertical block in
  *  the inspector (replaces the old horizontal meta bar). */
@@ -75,7 +75,7 @@ export function DetailsPanel({ vaultPath, feature, categories, onChanged, onMana
                   </option>
                 ))}
               </select>
-              <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-fg/40 text-[10px]">▾</span>
+              <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-faint text-[10px]">▾</span>
             </div>
           </div>
         </div>
@@ -97,7 +97,7 @@ export function DetailsPanel({ vaultPath, feature, categories, onChanged, onMana
                   />
                   <span
                     className={`block text-[11.5px] capitalize select-none px-2.5 py-1.5 border-r border-border last:border-r-0 transition-colors ${
-                      feature.tier === t ? 'bg-iris-soft text-iris-ink font-semibold' : 'text-fg/50 hover:text-fg/80'
+                      feature.tier === t ? 'bg-iris-soft text-iris-ink font-semibold' : 'text-muted hover:text-fg/80'
                     }`}
                   >
                     {t}
@@ -113,12 +113,12 @@ export function DetailsPanel({ vaultPath, feature, categories, onChanged, onMana
           <span className={`${ROW_KEY} pt-1.5`}>Tags</span>
           <div className="flex-1 flex flex-wrap items-center justify-end gap-1.5">
             {feature.tags.map((t) => (
-              <span key={t} className="flex items-center gap-1 text-[11px] rounded-full bg-app border border-border px-2.5 py-0.5 text-fg/60">
+              <span key={t} className="flex items-center gap-1 text-[11px] rounded-full bg-app border border-border px-2.5 py-0.5 text-muted">
                 {t}
                 <button
                   aria-label={`Remove ${t}`}
                   onClick={() => void commitTags(feature.tags.filter((x) => x !== t))}
-                  className="text-fg/35 hover:text-stop leading-none"
+                  className="text-faint hover:text-stop leading-none"
                 >
                   ×
                 </button>
