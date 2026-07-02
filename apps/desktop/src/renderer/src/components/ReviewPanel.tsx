@@ -170,7 +170,7 @@ export function ReviewPanel({
 
   if (showSettings) {
     return (
-      <aside className="w-80 min-w-80 border-l border-border bg-surface flex flex-col h-full overflow-y-auto">
+      <div className="flex flex-col h-full overflow-y-auto">
         <div className="px-5 py-4 border-b border-border flex items-center justify-between">
           <h2 className="text-[11px] font-semibold text-fg/45">Reviewer settings</h2>
           <button
@@ -183,12 +183,12 @@ export function ReviewPanel({
         <div className="p-5">
           <ReviewerSettings vaultPath={vaultPath} onClose={() => setShowSettings(false)} />
         </div>
-      </aside>
+      </div>
     )
   }
 
   return (
-    <aside className="w-80 min-w-80 border-l border-border bg-surface flex flex-col h-full overflow-y-auto">
+    <div className="flex flex-col h-full overflow-y-auto">
       <div className="px-5 py-4 border-b border-border">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-[11px] font-semibold text-fg/45">Review</h2>
@@ -396,6 +396,6 @@ export function ReviewPanel({
           </p>
         )}
       </div>
-    </aside>
+    </div>
   )
 }
