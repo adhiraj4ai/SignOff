@@ -427,10 +427,9 @@ export function Sidebar({
             </button>
           </div>
         )}
-        <div className="px-3.5 py-3 flex items-center gap-2 border-t border-railfg/[0.06]">
-          <Logo size={22} className="shrink-0" />
-          <span className="font-semibold text-[13.5px] tracking-tight text-railfg/90">SignOff</span>
-          <span className="ml-auto font-mono text-[10px] tracking-wide text-railfg/30">review &amp; approve</span>
+        <div className="px-3.5 py-4 flex items-center justify-center gap-2.5 border-t border-railfg/[0.06]">
+          <Logo size={32} className="shrink-0" />
+          <span className="font-semibold text-[15px] tracking-tight text-railfg/90">SignOff</span>
         </div>
       </footer>
     </aside>
