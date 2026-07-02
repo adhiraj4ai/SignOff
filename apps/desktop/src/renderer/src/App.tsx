@@ -138,9 +138,12 @@ export function App(): React.ReactElement {
   const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(null)
   const [syncKey, setSyncKey] = useState(0)
   const [toast, setToast] = useState<{ text: string; ok: boolean; conflict?: boolean } | null>(null)
-  const [autoSyncMs, setAutoSyncMs] = useState<number>(
-    () => Number(localStorage.getItem('signoff.autoSyncMs')) || 0
-  )
+  const [autoSyncMs, setAutoSyncMs] = useState<number>(() => {
+    // Default to a 5-minute auto-sync on first run so newly published documents
+    // appear without a manual pull. An explicit "Off" (stored "0") is respected.
+    const stored = localStorage.getItem('signoff.autoSyncMs')
+    return stored === null ? 300_000 : Number(stored) || 0
+  })
   const [theme, setTheme] = useState<'light' | 'dark'>(
     () => (localStorage.getItem('signoff.theme') === 'dark' ? 'dark' : 'light')
   )
