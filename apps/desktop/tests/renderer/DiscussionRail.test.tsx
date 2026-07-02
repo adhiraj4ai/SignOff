@@ -22,7 +22,7 @@ it('adds a comment thread to the anchored section', async () => {
   const ta = await screen.findByPlaceholderText(/add a comment on goals/i)
   fireEvent.change(ta, { target: { value: 'q' } })
   fireEvent.click(screen.getByRole('button', { name: /^post$/i }))
-  await waitFor(() => expect(window.signoff.comments.addThread).toHaveBeenCalledWith('/v', 'f', 'spec', 'goals', 3, 'q'))
+  await waitFor(() => expect(window.signoff.comments.addThread).toHaveBeenCalledWith('/v', 'f', 'spec', 'goals', 3, 'q', undefined))
 })
 
 describe('error handling — failures surface without throwing', () => {

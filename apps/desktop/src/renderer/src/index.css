@@ -101,6 +101,17 @@
   .doc blockquote {
     @apply border-l-2 border-iris/40 pl-4 my-5 text-fg/55 not-italic;
   }
+  /* Inline comment anchor: a commented text span, clickable to open its thread. */
+  .doc mark.sio-comment {
+    @apply bg-iris-soft rounded-[3px] cursor-pointer text-inherit;
+    text-decoration: underline;
+    text-decoration-color: #5b57d6;
+    text-decoration-thickness: 1.5px;
+    text-underline-offset: 3px;
+  }
+  .doc mark.sio-comment:hover {
+    @apply bg-iris/25;
+  }
   .doc hr {
     @apply my-7 border-border;
   }

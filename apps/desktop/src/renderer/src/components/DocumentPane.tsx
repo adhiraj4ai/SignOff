@@ -81,17 +81,67 @@ function makeComponents(onComment?: (r: CommentRequest) => void): Components {
   }
 }
 
+/** A commented span to highlight in the rendered document. */
+export interface QuoteMark {
+  quote: string
+  section: string
+}
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/** rehype plugin: wrap the first occurrence of each commented quote (within a
+ *  single text node, outside code) in a clickable <mark>. */
+function rehypeQuoteMarks(marks: QuoteMark[]) {
+  const active = marks.filter((m) => m.quote.trim().length > 0)
+  return () => (tree: any): void => {
+    if (!active.length) return
+    const walk = (node: any): void => {
+      if (!node || !Array.isArray(node.children)) return
+      if (node.tagName === 'pre' || node.tagName === 'code') return
+      for (let i = 0; i < node.children.length; i++) {
+        const child = node.children[i]
+        if (child.type === 'text') {
+          for (const m of active) {
+            const idx = child.value.indexOf(m.quote)
+            if (idx === -1) continue
+            const before = child.value.slice(0, idx)
+            const after = child.value.slice(idx + m.quote.length)
+            const mark = {
+              type: 'element',
+              tagName: 'mark',
+              properties: { className: ['sio-comment'], dataSection: m.section },
+              children: [{ type: 'text', value: m.quote }],
+            }
+            const repl: any[] = []
+            if (before) repl.push({ type: 'text', value: before })
+            repl.push(mark)
+            if (after) repl.push({ type: 'text', value: after })
+            node.children.splice(i, 1, ...repl)
+            i += repl.length - 1
+            break
+          }
+        } else {
+          walk(child)
+        }
+      }
+    }
+    walk(tree)
+  }
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
 function Markdown({
   content,
   onComment,
+  marks,
 }: {
   content: string
   onComment?: (r: CommentRequest) => void
+  marks?: QuoteMark[]
 }): React.ReactElement {
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
-      rehypePlugins={[[rehypeHighlight, { ignoreMissing: true }]]}
+      rehypePlugins={[[rehypeHighlight, { ignoreMissing: true }], rehypeQuoteMarks(marks ?? [])]}
       components={makeComponents(onComment)}
     >
       {content}
@@ -113,6 +163,10 @@ interface Props {
   onSaved?: (result: ReviewResult) => void
   /** Raised when the reader asks to comment on a heading or a text selection. */
   onComment?: (req: CommentRequest) => void
+  /** Bumped when comments change so highlighted quotes re-read. */
+  commentsVersion?: number
+  /** Raised when a commented (highlighted) span is clicked, to open its thread. */
+  onFocusSection?: (slug: string) => void
 }
 
 function statusDot(status: DocStatus): string {
@@ -178,6 +232,8 @@ export function DocumentPane({
   onSelectType,
   onSaved,
   onComment,
+  commentsVersion,
+  onFocusSection,
 }: Props): React.ReactElement {
   const tabs = docTypes ?? [{ type, status: 'not_found' as DocStatus }]
   const [content, setContent] = useState<string | null>(null)
@@ -187,8 +243,35 @@ export function DocumentPane({
   const [saveError, setSaveError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [fullWidth, setFullWidth] = useState(false)
+  const [marks, setMarks] = useState<QuoteMark[]>([])
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const readRef = useRef<HTMLDivElement>(null)
+
+  // Load commented quotes to highlight in the document (unresolved threads only).
+  useEffect(() => {
+    let alive = true
+    Promise.resolve(window.signoff.comments.read(vaultPath, feature, type))
+      .then((file) => {
+        if (!alive) return
+        const qs = (file?.threads ?? [])
+          .filter((t) => !t.resolved && typeof t.quote === 'string' && t.quote.trim().length > 0)
+          .map((t) => ({ quote: t.quote as string, section: t.section }))
+        setMarks(qs)
+      })
+      .catch(() => {
+        if (alive) setMarks([])
+      })
+    return () => {
+      alive = false
+    }
+  }, [vaultPath, feature, type, commentsVersion])
+
+  // Open the thread for a clicked highlight.
+  function handleDocClick(e: React.MouseEvent): void {
+    if (!onFocusSection) return
+    const mark = (e.target as HTMLElement).closest('mark.sio-comment')
+    if (mark) onFocusSection(mark.getAttribute('data-section') ?? '')
+  }
   // Floating "Comment" button shown for a text selection (Word-style inline comment).
   const [selection, setSelection] = useState<{ quote: string; slug: string; text: string; x: number; y: number } | null>(null)
 
@@ -429,20 +512,26 @@ export function DocumentPane({
           onMouseUp={handleTextSelection}
           onMouseDown={() => setSelection(null)}
           onScroll={() => selection && setSelection(null)}
+          onClick={handleDocClick}
         >
           {fullWidth ? (
-            <article className="doc mx-auto w-full max-w-none">
-              <Markdown content={content} onComment={onComment} />
+            <article className="doc mx-auto w-full max-w-none bg-surface border border-border rounded-xl shadow-panel px-10 py-10">
+              <Markdown content={content} onComment={onComment} marks={marks} />
             </article>
           ) : (
             <article className="doc mx-auto w-full max-w-[680px] bg-surface border border-border rounded-xl shadow-panel px-10 py-10">
-              <Markdown content={content} onComment={onComment} />
+              <Markdown content={content} onComment={onComment} marks={marks} />
             </article>
           )}
           {selection && onComment && (
             <button
               type="button"
-              onMouseDown={(e) => e.preventDefault()}
+              onMouseDown={(e) => {
+                // Keep the selection alive and stop the container's onMouseDown
+                // (which clears it) from unmounting this button before the click.
+                e.preventDefault()
+                e.stopPropagation()
+              }}
               onClick={commentOnSelection}
               style={{ position: 'fixed', left: selection.x, top: selection.y - 10 }}
               className="z-50 -translate-x-1/2 -translate-y-full flex items-center gap-1.5 rounded-lg bg-iris text-white text-[12px] font-medium px-2.5 py-1.5 shadow-panel hover:bg-iris-ink transition motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-iris/40"

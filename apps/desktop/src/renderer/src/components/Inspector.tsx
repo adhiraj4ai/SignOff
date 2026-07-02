@@ -27,9 +27,13 @@ interface Props {
   reloadKey: number
   /** A comment request from the document; switches to Discussion and anchors it. */
   commentRequest?: { slug: string; text: string; quote?: string; nonce: number } | null
+  /** Bumped when comments change so the tab badge re-reads. */
+  commentsVersion?: number
   onActionComplete: (result?: ReviewResult) => void
   onChanged: () => void
   onManageCategories?: () => void
+  /** Forwarded to the discussion so document highlights refresh after a change. */
+  onCommentsChanged?: () => void
 }
 
 /**
@@ -49,9 +53,11 @@ export function Inspector({
   markdown,
   reloadKey,
   commentRequest,
+  commentsVersion,
   onActionComplete,
   onChanged,
   onManageCategories,
+  onCommentsChanged,
 }: Props): React.ReactElement {
   const [tab, setTab] = useState<'review' | 'discussion'>('review')
   const [openComments, setOpenComments] = useState(0)
@@ -78,7 +84,7 @@ export function Inspector({
     return () => {
       alive = false
     }
-  }, [vaultPath, feature.name, type, reloadKey])
+  }, [vaultPath, feature.name, type, reloadKey, commentsVersion])
 
   const tabBtn = (active: boolean): string =>
     `flex-1 flex items-center justify-center gap-1.5 rounded-md py-1.5 text-[12px] font-semibold transition ${
@@ -132,6 +138,7 @@ export function Inspector({
             type={type}
             markdown={markdown}
             openRequest={commentRequest ?? null}
+            onCommentsChanged={onCommentsChanged}
           />
         ) : (
           <ReviewPanel

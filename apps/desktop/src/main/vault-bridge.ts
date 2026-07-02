@@ -485,12 +485,13 @@ export async function readDocComments(vaultPath: string, feature: string, type: 
   return readComments(vaultPath, feature, type)
 }
 
-export async function addCommentThread(vaultPath: string, feature: string, type: DocumentType, section: string, line: number, body: string): Promise<CommentsFile> {
+export async function addCommentThread(vaultPath: string, feature: string, type: DocumentType, section: string, line: number, body: string, quote?: string): Promise<CommentsFile> {
   const { email } = await resolveVaultAuthor(vaultPath)
   let out!: CommentsFile
   const result = await transact(vaultPath, async () => {
     out = addThread(await readComments(vaultPath, feature, type), {
       id: randomUUID(), section, line, resolved: false,
+      ...(quote ? { quote } : {}),
       comments: [{ id: randomUUID(), by: email, at: new Date().toISOString(), body }],
     })
     await writeComments(vaultPath, feature, type, out)

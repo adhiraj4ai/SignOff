@@ -26,6 +26,25 @@ describe('in-document commenting', () => {
     await screen.findByRole('heading', { name: 'Goals' })
     expect(screen.queryByRole('button', { name: /comment on goals/i })).toBeNull()
   })
+
+  it('highlights a commented quote in the document and opens its thread on click', async () => {
+    vi.mocked(window.signoff.comments.read).mockResolvedValue({
+      version: 1,
+      threads: [
+        { id: 't1', section: 'goals', line: 3, resolved: false, quote: 'some body text', comments: [{ id: 'c1', by: 'me@o.c', at: 't', body: 'x' }] },
+      ],
+    })
+    const onFocusSection = vi.fn()
+    render(<DocumentPane vaultPath="/v" feature="f" type="spec" commentsVersion={1} onFocusSection={onFocusSection} />)
+    const mark = await waitFor(() => {
+      const m = document.querySelector('mark.sio-comment')
+      if (!m) throw new Error('highlight not rendered yet')
+      return m
+    })
+    expect(mark).toHaveAttribute('data-section', 'goals')
+    fireEvent.click(mark)
+    expect(onFocusSection).toHaveBeenCalledWith('goals')
+  })
 })
 
 describe('DiscussionRail — inline comment request', () => {
@@ -48,9 +67,10 @@ describe('DiscussionRail — inline comment request', () => {
     )
 
     const composer = await screen.findByPlaceholderText(/add a comment on goals/i)
-    await waitFor(() => expect((composer as HTMLTextAreaElement).value).toContain('> some body text'))
+    // The selection shows as a quote chip in the composer (not prefilled body).
+    await screen.findByText(/some body text/)
 
-    fireEvent.change(composer, { target: { value: '> some body text\n\nneeds detail' } })
+    fireEvent.change(composer, { target: { value: 'needs detail' } })
     fireEvent.click(screen.getByRole('button', { name: /^post$/i }))
     await waitFor(() =>
       expect(window.signoff.comments.addThread).toHaveBeenCalledWith(
@@ -59,7 +79,8 @@ describe('DiscussionRail — inline comment request', () => {
         'spec',
         'goals',
         3,
-        '> some body text\n\nneeds detail',
+        'needs detail',
+        'some body text',
       ),
     )
   })

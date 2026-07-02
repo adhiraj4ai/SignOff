@@ -48,6 +48,8 @@ export function SelectedDocument({
   // A comment request from the document (heading button or text selection);
   // the nonce lets the same section be requested twice in a row.
   const [commentReq, setCommentReq] = useState<{ slug: string; text: string; quote?: string; nonce: number } | null>(null)
+  // Bumped whenever a comment changes so the document's highlights re-read.
+  const [commentsVersion, setCommentsVersion] = useState(0)
 
   useEffect(() => {
     // `alive` guards against a stale/late response overwriting newer state (or
@@ -103,6 +105,8 @@ export function SelectedDocument({
         onSelectType={onSelectType}
         onSaved={onDone}
         onComment={(r) => setCommentReq((prev) => ({ ...r, nonce: (prev?.nonce ?? 0) + 1 }))}
+        commentsVersion={commentsVersion}
+        onFocusSection={(slug) => setCommentReq((prev) => ({ slug, text: '', nonce: (prev?.nonce ?? 0) + 1 }))}
       />
       <Inspector
         vaultPath={vaultPath}
@@ -116,9 +120,11 @@ export function SelectedDocument({
         markdown={markdown}
         reloadKey={reloadKey}
         commentRequest={commentReq}
+        commentsVersion={commentsVersion}
         onActionComplete={onDone}
         onChanged={onChanged}
         onManageCategories={onManageCategories}
+        onCommentsChanged={() => setCommentsVersion((v) => v + 1)}
       />
     </div>
   )

@@ -8,8 +8,10 @@ interface Props {
   type: DocumentType
   markdown: string
   /** A comment request from the document: anchor + focus the composer, and
-   *  prefill the selected text (if any) as a quote. */
+   *  attach the selected text (if any) as the thread's quote. */
   openRequest?: { slug: string; text: string; quote?: string; nonce: number } | null
+  /** Called after any comment mutation so the document's highlights refresh. */
+  onCommentsChanged?: () => void
 }
 
 // --- Identity color helper (deterministic from author string) -------------
@@ -122,6 +124,11 @@ function ThreadItem({
     <div className="relative pl-3">
       {/* vertical connector spine down the left of the thread */}
       <span aria-hidden className="absolute left-0 top-1 bottom-1 w-px bg-border" />
+      {thread.quote && (
+        <p className="mb-2 border-l-2 border-iris rounded-r bg-iris-soft px-2 py-1 text-[11.5px] italic text-muted line-clamp-2">
+          “{thread.quote}”
+        </p>
+      )}
       <div className="flex flex-col gap-2.5">
         {thread.comments.map((c, i) => (
           <CommentNode key={c.id} comment={c} isReply={i > 0} />
@@ -279,10 +286,11 @@ function ThreadGroup({
   )
 }
 
-export function DiscussionRail({ vaultPath, feature, type, markdown, openRequest }: Props): React.ReactElement {
+export function DiscussionRail({ vaultPath, feature, type, markdown, openRequest, onCommentsChanged }: Props): React.ReactElement {
   const [commentsFile, setCommentsFile] = useState<CommentsFile | null>(null)
   const [anchorSlug, setAnchorSlug] = useState<string | null>(null)
   const [body, setBody] = useState('')
+  const [pendingQuote, setPendingQuote] = useState<string | null>(null)
   const [posting, setPosting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -292,6 +300,7 @@ export function DiscussionRail({ vaultPath, feature, type, markdown, openRequest
     setCommentsFile(null)
     setAnchorSlug(null)
     setBody('')
+    setPendingQuote(null)
     setError(null)
     window.signoff.comments
       .read(vaultPath, feature, type)
@@ -308,9 +317,7 @@ export function DiscussionRail({ vaultPath, feature, type, markdown, openRequest
   useEffect(() => {
     if (!openRequest) return
     setAnchorSlug(headingSlugs.has(openRequest.slug) ? openRequest.slug : headings[0]?.slug ?? null)
-    if (openRequest.quote) {
-      setBody(`> ${openRequest.quote.replace(/\s+/g, ' ').trim()}\n\n`)
-    }
+    setPendingQuote(openRequest.quote ?? null)
     requestAnimationFrame(() => {
       const el = scrollRef.current?.querySelector(`[data-section="${openRequest.slug}"]`)
       if (el instanceof HTMLElement && typeof el.scrollIntoView === 'function') {
@@ -341,6 +348,7 @@ export function DiscussionRail({ vaultPath, feature, type, markdown, openRequest
 
   function handleRefresh(file: CommentsFile): void {
     setCommentsFile(file)
+    onCommentsChanged?.()
   }
 
   // Default the composer's anchor to the first heading once headings are known.
@@ -360,9 +368,11 @@ export function DiscussionRail({ vaultPath, feature, type, markdown, openRequest
         anchorHeading.slug,
         anchorHeading.line,
         body.trim(),
+        pendingQuote ?? undefined,
       )
       handleRefresh(result)
       setBody('')
+      setPendingQuote(null)
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     } finally {
@@ -431,6 +441,18 @@ export function DiscussionRail({ vaultPath, feature, type, markdown, openRequest
       {/* Composer pinned at the bottom */}
       {hasHeadings && (
         <div className="shrink-0 border-t border-border bg-rail px-4 py-3">
+          {pendingQuote && (
+            <div className="mb-2 flex items-start gap-2 rounded-lg border-l-2 border-iris bg-iris-soft px-2.5 py-1.5">
+              <p className="min-w-0 flex-1 text-[11.5px] italic text-muted line-clamp-2">“{pendingQuote}”</p>
+              <button
+                onClick={() => setPendingQuote(null)}
+                aria-label="Remove quoted text"
+                className="shrink-0 text-faint hover:text-stop leading-none text-[13px] focus:outline-none focus-visible:ring-2 focus-visible:ring-iris/40 rounded"
+              >
+                ×
+              </button>
+            </div>
+          )}
           <div className="rounded-xl border border-border bg-surface focus-within:ring-2 focus-within:ring-iris/40 transition-shadow shadow-sm overflow-hidden">
             <textarea
               ref={textareaRef}
