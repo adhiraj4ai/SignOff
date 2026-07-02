@@ -226,8 +226,8 @@ export function DocumentPane({
       title={label}
       aria-label={label}
       aria-pressed={view === mode}
-      className={`grid place-items-center w-7 h-7 rounded-md transition ${
-        view === mode ? 'bg-surface text-fg shadow-sm' : 'text-fg/45 hover:text-fg/80'
+      className={`grid place-items-center w-7 h-7 rounded-md transition motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-iris/40 ${
+        view === mode ? 'bg-iris text-white shadow-sm' : 'text-fg/50 hover:text-iris-ink hover:bg-surface'
       }`}
     >
       <Glyph />
@@ -239,7 +239,7 @@ export function DocumentPane({
       onClick={onClick}
       title={label}
       aria-label={label}
-      className="grid place-items-center w-7 h-7 rounded-md text-fg/50 hover:text-fg hover:bg-app transition"
+      className="grid place-items-center w-7 h-7 rounded-md text-fg/50 hover:text-iris-ink hover:bg-iris-soft transition motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-iris/40"
     >
       {glyph}
     </button>
@@ -248,12 +248,13 @@ export function DocumentPane({
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-app min-w-0">
       <header className="bg-surface border-b border-border">
-        <div className="max-w-[1100px] mx-auto w-full px-6 py-2 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
+        <div className="max-w-[1100px] mx-auto w-full px-6 py-2.5 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5 min-w-0">
             <h1 className="text-[13.5px] font-semibold text-fg truncate" title={humanizeFeature(feature)}>
               {humanizeFeature(feature)}
             </h1>
-            <div className="flex items-center gap-0.5">
+            {/* Doc-type tabs — segmented control on a bg-app track */}
+            <div className="flex items-center gap-1 bg-app p-1 rounded-lg border border-border">
               {tabs.map((t) => {
                 const isActive = t.type === type
                 return (
@@ -262,8 +263,10 @@ export function DocumentPane({
                     onClick={() => onSelectType?.(t.type)}
                     aria-label={t.type}
                     aria-pressed={isActive}
-                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[12px] font-medium capitalize transition-colors ${
-                      isActive ? 'bg-app text-fg' : 'text-fg/45 hover:text-fg/80 hover:bg-app/60'
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[12px] capitalize transition-colors motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-iris/40 ${
+                      isActive
+                        ? 'bg-surface text-iris-ink shadow-sm font-semibold'
+                        : 'text-fg/50 hover:text-iris-ink font-medium'
                     }`}
                   >
                     <span className={`w-1.5 h-1.5 rounded-full ${statusDot(t.status)}`} />
@@ -291,7 +294,8 @@ export function DocumentPane({
                 setFullWidth((v) => !v)
               )}
             <span className="w-px h-5 bg-border mx-1" />
-            <div className="flex items-center gap-0.5 bg-app rounded-lg p-0.5">
+            {/* View-mode — segmented control, active = iris */}
+            <div className="flex items-center gap-0.5 bg-app rounded-lg p-1 border border-border">
               {viewBtn('read', 'Read', ReadIcon)}
               {viewBtn('split', 'Split', SplitIcon)}
               {viewBtn('edit', 'Edit', CodeIcon)}
@@ -307,14 +311,14 @@ export function DocumentPane({
                 <button
                   onClick={cancel}
                   disabled={saving}
-                  className="text-[12px] font-medium text-fg/60 px-2.5 py-1 rounded-md hover:bg-app transition"
+                  className="text-[12px] font-medium text-fg/60 px-2.5 py-1 rounded-md hover:text-iris-ink hover:bg-iris-soft transition motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-iris/40"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={save}
                   disabled={saving}
-                  className="text-[12px] font-semibold text-white bg-iris px-3 py-1 rounded-md hover:bg-iris-ink disabled:opacity-50 transition"
+                  className="text-[12px] font-semibold text-white bg-iris px-3 py-1 rounded-md hover:bg-iris-ink disabled:opacity-50 transition motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-iris/40"
                 >
                   {saving ? 'Saving…' : 'Save'}
                 </button>
@@ -325,12 +329,16 @@ export function DocumentPane({
       </header>
 
       {view === 'read' && (
-        <div className="flex-1 overflow-y-auto">
-          <article
-            className={`doc mx-auto w-full px-8 py-8 ${fullWidth ? 'max-w-none' : 'max-w-[760px]'}`}
-          >
-            <Markdown content={content} />
-          </article>
+        <div className="flex-1 overflow-y-auto px-6 py-8">
+          {fullWidth ? (
+            <article className="doc mx-auto w-full max-w-none">
+              <Markdown content={content} />
+            </article>
+          ) : (
+            <article className="doc mx-auto w-full max-w-[680px] bg-surface border border-border rounded-xl shadow-panel px-10 py-10">
+              <Markdown content={content} />
+            </article>
+          )}
         </div>
       )}
 
@@ -340,7 +348,7 @@ export function DocumentPane({
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           spellCheck={false}
-          className="flex-1 resize-none bg-surface font-mono text-[13px] leading-relaxed text-fg/90 px-8 py-8 focus:outline-none"
+          className="flex-1 resize-none bg-surface font-mono text-[13px] leading-relaxed text-fg/90 px-8 py-8 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-iris/40"
         />
       )}
 
@@ -351,10 +359,10 @@ export function DocumentPane({
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             spellCheck={false}
-            className="w-1/2 resize-none bg-surface font-mono text-[13px] leading-relaxed text-fg/90 px-6 py-6 border-r border-border focus:outline-none"
+            className="w-1/2 resize-none bg-surface font-mono text-[13px] leading-relaxed text-fg/90 px-6 py-6 border-r border-border focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-iris/40"
           />
-          <div className="w-1/2 overflow-y-auto bg-app">
-            <article className="doc w-full px-6 py-6">
+          <div className="w-1/2 overflow-y-auto bg-app px-6 py-6">
+            <article className="doc mx-auto w-full max-w-[680px] bg-surface border border-border rounded-xl shadow-panel px-8 py-8">
               <Markdown content={draft} />
             </article>
           </div>
